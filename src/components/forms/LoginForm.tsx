@@ -20,12 +20,21 @@ const LoginForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
+
+      // Buscar dados do usuário
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('auth_id', authData.user?.id)
+        .single();
+
+      if (userError) throw userError;
 
       navigate('/inicio');
     } catch (err) {

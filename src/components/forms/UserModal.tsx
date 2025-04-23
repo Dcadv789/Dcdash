@@ -21,6 +21,8 @@ interface UserModalProps {
     email: string;
     permissao: string;
     empresa_id: string | null;
+    cargo: string | null;
+    ativo: boolean;
   };
 }
 
@@ -32,6 +34,8 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
     email: '',
     permissao: 'viewer',
     empresa_id: '',
+    cargo: '',
+    ativo: true,
     selectedEmpresas: [] as string[]
   });
   const [error, setError] = useState('');
@@ -44,6 +48,8 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
         email: editingUser.email,
         permissao: editingUser.permissao,
         empresa_id: editingUser.empresa_id || '',
+        cargo: editingUser.cargo || '',
+        ativo: editingUser.ativo,
         selectedEmpresas: []
       });
     }
@@ -60,28 +66,56 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
     setError('');
 
     try {
-      const userData = {
-        nome: formData.nome,
-        email: formData.email,
-        permissao: formData.permissao,
-        empresa_id: ['cliente', 'viewer'].includes(formData.permissao) ? formData.empresa_id : null
-      };
+      if (!editingUser) {
+        // Criar novo usuário no auth
+        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+          email: formData.email,
+          password: 'senha123', // Senha temporária
+          email_confirm: true
+        });
 
-      if (editingUser) {
-        await supabase
+        if (authError) throw authError;
+
+        // Criar usuário na tabela usuarios
+        const userData = {
+          auth_id: authData.user.id,
+          nome: formData.nome,
+          email: formData.email,
+          permissao: formData.permissao,
+          empresa_id: ['cliente', 'viewer'].includes(formData.permissao) ? formData.empresa_id : null,
+          cargo: formData.cargo || null,
+          ativo: formData.ativo
+        };
+
+        const { error: userError } = await supabase
+          .from('usuarios')
+          .insert([userData]);
+
+        if (userError) throw userError;
+      } else {
+        // Atualizar usuário existente
+        const userData = {
+          nome: formData.nome,
+          email: formData.email,
+          permissao: formData.permissao,
+          empresa_id: ['cliente', 'viewer'].includes(formData.permissao) ? formData.empresa_id : null,
+          cargo: formData.cargo || null,
+          ativo: formData.ativo
+        };
+
+        const { error: userError } = await supabase
           .from('usuarios')
           .update(userData)
           .eq('id', editingUser.id);
-      } else {
-        await supabase
-          .from('usuarios')
-          .insert([userData]);
+
+        if (userError) throw userError;
       }
 
       onSuccess();
       onClose();
     } catch (err) {
       setError('Erro ao salvar usuário');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -124,6 +158,12 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
+            />
+
+            <Input
+              label="Cargo"
+              value={formData.cargo}
+              onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
             />
 
             <div className="space-y-2">
@@ -218,6 +258,20 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
               </div>
             )}
 
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-300">
+                Status
+              </label>
+              <select
+                value={formData.ativo.toString()}
+                onChange={(e) => setFormData({ ...formData, ativo: e.target.value === 'true' })}
+                className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="true">Ativo</option>
+                <option value="false">Inativo</option>
+              </select>
+            </div>
+
             {error && (
               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <p className="text-sm text-red-500 text-center">{error}</p>
@@ -243,4 +297,4 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
   );
 };
 
-export default UserModal
+export default UserModal;

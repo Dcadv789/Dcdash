@@ -11,6 +11,8 @@ interface Usuario {
   email: string;
   permissao: 'master' | 'consultor' | 'cliente' | 'viewer';
   empresa_id: string | null;
+  cargo: string | null;
+  ativo: boolean;
   created_at: string;
 }
 
@@ -61,14 +63,20 @@ const Usuarios: React.FC = () => {
     }
   };
 
+  const getStatusColor = (ativo: boolean) => {
+    return ativo
+      ? 'bg-green-500/10 text-green-500'
+      : 'bg-red-500/10 text-red-500';
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <div className="space-y-6">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
+          <div className="flex justify-between items-center">
+            <div>
               <h2 className="text-2xl font-bold text-gray-300">Gestão de Usuários</h2>
-              <p className="text-gray-400">
+              <p className="text-gray-400 mt-1">
                 Gerencie os usuários do sistema e suas permissões de acesso
               </p>
             </div>
@@ -77,9 +85,9 @@ const Usuarios: React.FC = () => {
                 setEditingUser(undefined);
                 setIsModalOpen(true);
               }}
-              className="!w-auto !px-4 !py-2 !bg-blue-600 hover:!bg-blue-700"
+              className="!w-auto !px-3 !py-2 !bg-blue-600 hover:!bg-blue-700 flex items-center gap-2"
             >
-              <Plus size={18} className="mr-2" />
+              <Plus size={16} />
               Novo Usuário
             </Button>
           </div>
@@ -89,28 +97,36 @@ const Usuarios: React.FC = () => {
               <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-gray-800">
               <table className="w-full">
                 <thead>
-                  <tr className="text-left border-b border-gray-800">
-                    <th className="pb-3 text-gray-400 font-medium">Nome</th>
-                    <th className="pb-3 text-gray-400 font-medium">Email</th>
-                    <th className="pb-3 text-gray-400 font-medium">Permissão</th>
-                    <th className="pb-3 text-gray-400 font-medium">Ações</th>
+                  <tr className="bg-gray-900">
+                    <th className="px-6 py-4 text-left text-sm text-gray-400 font-medium">Nome</th>
+                    <th className="px-6 py-4 text-left text-sm text-gray-400 font-medium">Email</th>
+                    <th className="px-6 py-4 text-left text-sm text-gray-400 font-medium">Cargo</th>
+                    <th className="px-6 py-4 text-left text-sm text-gray-400 font-medium">Permissão</th>
+                    <th className="px-6 py-4 text-left text-sm text-gray-400 font-medium">Status</th>
+                    <th className="px-6 py-4 text-right text-sm text-gray-400 font-medium">Ações</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-800">
                   {usuarios.map((usuario) => (
-                    <tr key={usuario.id} className="border-b border-gray-800">
-                      <td className="py-4">{usuario.nome}</td>
-                      <td className="py-4">{usuario.email}</td>
-                      <td className="py-4">
+                    <tr key={usuario.id} className="hover:bg-gray-900/50">
+                      <td className="px-6 py-4 whitespace-nowrap">{usuario.nome}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{usuario.email}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{usuario.cargo || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500">
                           {usuario.permissao}
                         </span>
                       </td>
-                      <td className="py-4">
-                        <div className="flex space-x-2">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(usuario.ativo)}`}>
+                          {usuario.ativo ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="flex justify-end space-x-2">
                           <button
                             onClick={() => handleEdit(usuario)}
                             className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
