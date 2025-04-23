@@ -12,8 +12,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <div className="mx-auto max-w-[1920px] min-h-screen relative">
         <Sidebar />
         <Topbar />
-        <main className="pt-24 pl-72 pr-4 pb-4 min-h-screen">
-          <div className="h-[calc(100vh-theme(spacing.24))]">
+        <main className="pt-24 pl-72 pr-4 pb-4">
+          <div className="h-[calc(100vh-7rem)] bg-black rounded-2xl p-6 overflow-auto">
             {children}
           </div>
         </main>
