@@ -4,6 +4,7 @@ import { X, User, Building2, Shield } from 'lucide-react';
 import Select from 'react-select';
 import { supabase } from '../../lib/supabase';
 import Button from './Button';
+import { useNotification } from '../notifications/useNotification';
 
 interface Empresa {
   id: string;
@@ -27,6 +28,7 @@ interface UserModalProps {
 }
 
 const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editingUser }) => {
+  const { notifySuccess, notifyError } = useNotification();
   const [loading, setLoading] = useState(false);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [formData, setFormData] = useState({
@@ -38,7 +40,6 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
     ativo: true,
     selectedEmpresas: [] as string[]
   });
-  const [error, setError] = useState('');
 
   useEffect(() => {
     loadEmpresas();
@@ -52,6 +53,10 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
         ativo: editingUser.ativo,
         selectedEmpresas: []
       });
+      
+      if (editingUser.permissao === 'consultor') {
+        loadUserEmpresas(editingUser.id);
+      }
     } else {
       setFormData({
         nome: '',
@@ -66,20 +71,53 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
   }, [editingUser]);
 
   const loadEmpresas = async () => {
-    const { data } = await supabase.from('empresas').select('*');
-    if (data) setEmpresas(data);
+    try {
+      const { data, error } = await supabase
+        .from('empresas')
+        .select('*')
+        .order('razao_social');
+
+      if (error) throw error;
+      if (data) setEmpresas(data);
+    } catch (err) {
+      console.error('Erro ao carregar empresas:', err);
+      notifyError('Erro ao carregar empresas');
+    }
+  };
+
+  const loadUserEmpresas = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('usuarios_empresas')
+        .select('empresa_id')
+        .eq('usuario_id', userId);
+      
+      if (error) throw error;
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          selectedEmpresas: data.map(item => item.empresa_id)
+        }));
+      }
+    } catch (err) {
+      console.error('Erro ao carregar empresas do usuário:', err);
+      notifyError('Erro ao carregar empresas do usuário');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
-      // Atualizar usuário existente
+      if (!editingUser) {
+        notifyError('Usuário não encontrado');
+        return;
+      }
+
+      // Atualizar usuário
       const userData = {
         nome: formData.nome,
-        email: formData.email,
         permissao: formData.permissao,
         empresa_id: ['cliente', 'viewer'].includes(formData.permissao) ? formData.empresa_id : null,
         cargo: formData.cargo || null,
@@ -89,38 +127,41 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
       const { error: userError } = await supabase
         .from('usuarios')
         .update(userData)
-        .eq('id', editingUser!.id);
+        .eq('id', editingUser.id);
 
       if (userError) throw userError;
 
       // Atualizar relações de empresas para consultores
       if (formData.permissao === 'consultor') {
-        // Primeiro remove todas as relações existentes
-        await supabase
+        // Remover relações existentes
+        const { error: deleteError } = await supabase
           .from('usuarios_empresas')
           .delete()
-          .eq('usuario_id', editingUser!.id);
+          .eq('usuario_id', editingUser.id);
 
-        // Depois adiciona as novas relações
+        if (deleteError) throw deleteError;
+
+        // Adicionar novas relações
         if (formData.selectedEmpresas.length > 0) {
           const relacoes = formData.selectedEmpresas.map(empresaId => ({
-            usuario_id: editingUser!.id,
+            usuario_id: editingUser.id,
             empresa_id: empresaId
           }));
 
-          const { error: relError } = await supabase
+          const { error: insertError } = await supabase
             .from('usuarios_empresas')
             .insert(relacoes);
 
-          if (relError) throw relError;
+          if (insertError) throw insertError;
         }
       }
 
+      notifySuccess('Usuário atualizado com sucesso!');
       onSuccess();
       onClose();
     } catch (err) {
-      setError('Erro ao salvar usuário');
-      console.error(err);
+      console.error('Erro ao atualizar usuário:', err);
+      notifyError('Erro ao atualizar usuário');
     } finally {
       setLoading(false);
     }
@@ -190,10 +231,8 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                  readOnly
+                  className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 opacity-50"
+                  disabled
                 />
               </div>
 
@@ -241,6 +280,9 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
                 <Select
                   isMulti
                   options={empresasOptions}
+                  value={empresasOptions.filter(option => 
+                    formData.selectedEmpresas.includes(option.value)
+                  )}
                   className="react-select-container"
                   classNamePrefix="react-select"
                   onChange={(selected) => {
@@ -301,12 +343,6 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
                 <option value="false">Inativo</option>
               </select>
             </div>
-
-            {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-                <p className="text-sm text-red-500 text-center">{error}</p>
-              </div>
-            )}
 
             <div className="flex space-x-3">
               <Button
