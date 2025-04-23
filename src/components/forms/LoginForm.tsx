@@ -4,11 +4,12 @@ import { Mail, Lock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Input from './Input';
 import Button from './Button';
+import { useNotification } from '../notifications/useNotification';
 
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
+  const { notifyError } = useNotification();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -16,10 +17,10 @@ const LoginForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
+      // Fazer login
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
@@ -36,9 +37,17 @@ const LoginForm: React.FC = () => {
 
       if (userError) throw userError;
 
-      navigate('/inicio');
+      // Atualizar os claims do JWT com a permissão do usuário
+      const { error: updateError } = await supabase.auth.refreshSession({
+        refresh_token: authData.session?.refresh_token ?? '',
+      });
+
+      if (updateError) throw updateError;
+
+      navigate('/dashboard');
     } catch (err) {
-      setError('Email ou senha inválidos');
+      console.error('Erro ao fazer login:', err);
+      notifyError('Email ou senha inválidos');
     } finally {
       setLoading(false);
     }
@@ -52,30 +61,32 @@ const LoginForm: React.FC = () => {
       </div>
 
       <div className="space-y-4">
-        <Input
-          label="Email"
-          type="email"
-          placeholder="seu@email.com"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          required
-        />
-
-        <Input
-          label="Senha"
-          type="password"
-          placeholder="••••••••"
-          value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          required
-        />
-      </div>
-
-      {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-          <p className="text-sm text-red-500 text-center">{error}</p>
+        <div className="relative">
+          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <Input
+            label="Email"
+            type="email"
+            className="pl-12"
+            placeholder="seu@email.com"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            required
+          />
         </div>
-      )}
+
+        <div className="relative">
+          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <Input
+            label="Senha"
+            type="password"
+            className="pl-12"
+            placeholder="••••••••"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            required
+          />
+        </div>
+      </div>
 
       <Button type="submit" loading={loading}>
         Entrar

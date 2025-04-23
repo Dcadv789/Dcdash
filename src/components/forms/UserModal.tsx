@@ -74,14 +74,19 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
     try {
       const { data, error } = await supabase
         .from('empresas')
-        .select('*')
+        .select('id, razao_social, nome_fantasia')
         .order('razao_social');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao carregar empresas:', error);
+        notifyError('Não foi possível carregar a lista de empresas. Por favor, tente novamente.');
+        return;
+      }
+      
       if (data) setEmpresas(data);
     } catch (err) {
       console.error('Erro ao carregar empresas:', err);
-      notifyError('Erro ao carregar empresas');
+      notifyError('Erro inesperado ao carregar empresas. Por favor, tente novamente.');
     }
   };
 
@@ -92,7 +97,12 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
         .select('empresa_id')
         .eq('usuario_id', userId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao carregar empresas do usuário:', error);
+        notifyError('Não foi possível carregar as empresas associadas ao usuário.');
+        return;
+      }
+      
       if (data) {
         setFormData(prev => ({
           ...prev,
@@ -101,7 +111,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
       }
     } catch (err) {
       console.error('Erro ao carregar empresas do usuário:', err);
-      notifyError('Erro ao carregar empresas do usuário');
+      notifyError('Erro inesperado ao carregar empresas do usuário.');
     }
   };
 
@@ -129,7 +139,11 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
         .update(userData)
         .eq('id', editingUser.id);
 
-      if (userError) throw userError;
+      if (userError) {
+        console.error('Erro ao atualizar usuário:', userError);
+        notifyError('Não foi possível atualizar os dados do usuário.');
+        return;
+      }
 
       // Atualizar relações de empresas para consultores
       if (formData.permissao === 'consultor') {
@@ -139,7 +153,11 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
           .delete()
           .eq('usuario_id', editingUser.id);
 
-        if (deleteError) throw deleteError;
+        if (deleteError) {
+          console.error('Erro ao remover relações existentes:', deleteError);
+          notifyError('Erro ao atualizar as empresas associadas ao usuário.');
+          return;
+        }
 
         // Adicionar novas relações
         if (formData.selectedEmpresas.length > 0) {
@@ -152,7 +170,11 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
             .from('usuarios_empresas')
             .insert(relacoes);
 
-          if (insertError) throw insertError;
+          if (insertError) {
+            console.error('Erro ao inserir novas relações:', insertError);
+            notifyError('Erro ao adicionar novas empresas ao usuário.');
+            return;
+          }
         }
       }
 
@@ -161,7 +183,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
       onClose();
     } catch (err) {
       console.error('Erro ao atualizar usuário:', err);
-      notifyError('Erro ao atualizar usuário');
+      notifyError('Erro inesperado ao atualizar usuário.');
     } finally {
       setLoading(false);
     }

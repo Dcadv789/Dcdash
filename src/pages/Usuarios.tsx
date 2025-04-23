@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pencil, Trash2, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import UserModal from '../components/forms/UserModal';
+import { useNotification } from '../components/notifications/useNotification';
 
 interface Usuario {
   id: string;
@@ -16,6 +17,7 @@ interface Usuario {
 }
 
 const Usuarios: React.FC = () => {
+  const { notifySuccess, notifyError } = useNotification();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,10 +34,16 @@ const Usuarios: React.FC = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao carregar usuários:', error);
+        notifyError('Não foi possível carregar a lista de usuários');
+        return;
+      }
+
       setUsuarios(data || []);
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
+      notifyError('Erro inesperado ao carregar usuários');
     } finally {
       setLoading(false);
     }
@@ -55,10 +63,17 @@ const Usuarios: React.FC = () => {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao excluir usuário:', error);
+        notifyError('Não foi possível excluir o usuário');
+        return;
+      }
+
+      notifySuccess('Usuário excluído com sucesso');
       await carregarUsuarios();
     } catch (error) {
       console.error('Erro ao excluir usuário:', error);
+      notifyError('Erro inesperado ao excluir usuário');
     }
   };
 
