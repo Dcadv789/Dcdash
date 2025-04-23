@@ -8,14 +8,6 @@ const ProfileDropdown: React.FC = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const [buttonWidth, setButtonWidth] = useState(0);
-
-  useEffect(() => {
-    if (buttonRef.current) {
-      setButtonWidth(buttonRef.current.offsetWidth);
-    }
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -31,12 +23,11 @@ const ProfileDropdown: React.FC = () => {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 py-3 px-4 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-gray-900"
+        className="flex items-center space-x-3 py-3 px-4 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-gray-900 min-w-[200px]"
       >
         <User size={20} />
-        <div className="text-left">
+        <div className="text-left flex-1">
           <div className="text-sm font-medium">Perfil</div>
           <div className="text-xs text-gray-500">{user?.email}</div>
         </div>
@@ -44,8 +35,7 @@ const ProfileDropdown: React.FC = () => {
 
       {isOpen && (
         <div 
-          className="absolute right-0 mt-2 bg-black rounded-xl shadow-lg py-1 border border-gray-800"
-          style={{ width: `${buttonWidth}px` }}
+          className="absolute right-0 mt-2 w-[200px] bg-black rounded-xl shadow-lg py-1 border border-gray-800"
         >
           <button
             onClick={() => {

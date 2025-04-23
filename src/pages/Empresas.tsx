@@ -81,99 +81,100 @@ const Empresas: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Gestão de Empresas</h2>
-            <p className="text-gray-400 mt-1">
-              Gerencie as empresas cadastradas no sistema e seus dados
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              setEditingCompany(undefined);
-              setIsModalOpen(true);
-            }}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center gap-2 text-sm font-medium transition-colors"
-          >
-            <Plus size={18} />
-            Nova Empresa
-          </button>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+            <Building2 size={28} className="text-gray-400" />
+            Gestão de Empresas
+          </h2>
+          <p className="text-gray-400 mt-1">
+            Gerencie as empresas cadastradas no sistema e seus dados
+          </p>
         </div>
-
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {empresas.map((empresa) => (
-              <div
-                key={empresa.id}
-                className="bg-[#1e1e1e] rounded-xl p-6 border border-gray-800"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">
-                      {empresa.nome_fantasia || empresa.razao_social}
-                    </h3>
-                    <p className="text-sm text-gray-400">{empresa.cnpj || 'CNPJ não cadastrado'}</p>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                      empresa.ativo
-                    )}`}
-                  >
-                    {empresa.ativo ? 'Ativa' : 'Inativa'}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-300 flex items-center gap-2">
-                    <Building2 size={16} className="text-gray-400" />
-                    <span><strong>Razão Social:</strong> {empresa.razao_social}</span>
-                  </p>
-                  <p className="text-sm text-gray-300 flex items-center gap-2">
-                    <Users size={16} className="text-gray-400" />
-                    <span><strong>Sócios:</strong>{' '}
-                    {empresa.socios?.length
-                      ? empresa.socios.length
-                      : 'Nenhum sócio cadastrado'}</span>
-                  </p>
-                  {empresa.data_contrato && (
-                    <p className="text-sm text-gray-300 flex items-center gap-2">
-                      <Calendar size={16} className="text-gray-400" />
-                      <span><strong>Cliente há:</strong>{' '}
-                      {calcularTempoCliente(empresa.data_contrato)} meses</span>
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex justify-end space-x-2 mt-4">
-                  <button
-                    onClick={() => console.log('View company', empresa.id)}
-                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-                  >
-                    <Eye size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleEdit(empresa)}
-                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(empresa.id)}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <button
+          onClick={() => {
+            setEditingCompany(undefined);
+            setIsModalOpen(true);
+          }}
+          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center gap-2 text-sm font-medium transition-colors"
+        >
+          <Plus size={18} />
+          Nova Empresa
+        </button>
       </div>
+
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {empresas.map((empresa) => (
+            <div
+              key={empresa.id}
+              className="bg-[#1e1e1e] rounded-xl p-6 border border-gray-800"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    {empresa.nome_fantasia || empresa.razao_social}
+                  </h3>
+                  <p className="text-sm text-gray-400">{empresa.cnpj || 'CNPJ não cadastrado'}</p>
+                </div>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                    empresa.ativo
+                  )}`}
+                >
+                  {empresa.ativo ? 'Ativa' : 'Inativa'}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm text-gray-300 flex items-center gap-2">
+                  <Building2 size={16} className="text-gray-400" />
+                  <span><strong>Razão Social:</strong> {empresa.razao_social}</span>
+                </p>
+                <p className="text-sm text-gray-300 flex items-center gap-2">
+                  <Users size={16} className="text-gray-400" />
+                  <span><strong>Sócios:</strong>{' '}
+                  {empresa.socios?.length
+                    ? empresa.socios.length
+                    : 'Nenhum sócio cadastrado'}</span>
+                </p>
+                {empresa.data_contrato && (
+                  <p className="text-sm text-gray-300 flex items-center gap-2">
+                    <Calendar size={16} className="text-gray-400" />
+                    <span><strong>Cliente há:</strong>{' '}
+                    {calcularTempoCliente(empresa.data_contrato)} meses</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-2 mt-4">
+                <button
+                  onClick={() => console.log('View company', empresa.id)}
+                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <Eye size={16} />
+                </button>
+                <button
+                  onClick={() => handleEdit(empresa)}
+                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  onClick={() => handleDelete(empresa.id)}
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <CompanyModal
         isOpen={isModalOpen}

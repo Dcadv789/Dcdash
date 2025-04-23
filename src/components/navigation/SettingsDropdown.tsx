@@ -6,14 +6,6 @@ const SettingsDropdown: React.FC = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const [buttonWidth, setButtonWidth] = useState(0);
-
-  useEffect(() => {
-    if (buttonRef.current) {
-      setButtonWidth(buttonRef.current.offsetWidth);
-    }
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -29,18 +21,16 @@ const SettingsDropdown: React.FC = () => {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 py-3 px-4 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-gray-900"
+        className="flex items-center space-x-3 py-3 px-4 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-gray-900 min-w-[200px]"
       >
         <Settings size={20} />
-        <span className="text-sm font-medium">Configurações</span>
+        <span className="text-sm font-medium flex-1 text-left">Configurações</span>
       </button>
 
       {isOpen && (
         <div 
-          className="absolute right-0 mt-2 bg-black rounded-xl shadow-lg py-1 border border-gray-800"
-          style={{ width: `${buttonWidth}px` }}
+          className="absolute right-0 mt-2 w-[200px] bg-black rounded-xl shadow-lg py-1 border border-gray-800"
         >
           <button
             onClick={() => {

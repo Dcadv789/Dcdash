@@ -3,7 +3,7 @@ import { Activity } from 'lucide-react';
 
 const StatusIndicator: React.FC = () => {
   return (
-    <div className="flex items-center p-4 bg-gray-900 rounded-lg border border-gray-800">
+    <div className="flex items-center p-4 bg-[#1e1e1e] rounded-lg border border-gray-800">
       <div className="flex items-center justify-center bg-gray-800 rounded-full p-2 mr-3">
         <Activity size={18} className="text-green-500" />
       </div>
