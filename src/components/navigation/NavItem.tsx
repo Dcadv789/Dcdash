@@ -14,7 +14,7 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, children, className = '' })
       to={to}
       className={({ isActive }) =>
         `flex items-center py-3 px-4 rounded-lg transition-colors ${
-          isActive ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-900'
+          isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-900'
         } ${className}`
       }
     >
