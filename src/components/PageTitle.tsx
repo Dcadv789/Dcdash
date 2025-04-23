@@ -8,8 +8,7 @@ interface PageTitleProps {
 const PageTitle: React.FC<PageTitleProps> = ({ title }) => {
   return (
     <Card>
-      <h1 className="text-2xl font-bold mb-2">{title}</h1>
-      <div className="h-1 w-24 bg-gray-800 rounded-full"></div>
+      <h1 className="text-2xl font-bold">{title}</h1>
     </Card>
   );
 };
