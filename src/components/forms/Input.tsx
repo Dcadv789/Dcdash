@@ -13,7 +13,7 @@ const Input: React.FC<InputProps> = ({ label, error, ...props }) => {
       </label>
       <input
         {...props}
-        className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
       {error && (
         <p className="text-sm text-red-500">{error}</p>

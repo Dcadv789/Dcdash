@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog } from '@headlessui/react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, Users } from 'lucide-react';
 import InputMask from 'react-input-mask';
 import { supabase } from '../../lib/supabase';
 import Input from './Input';
@@ -193,60 +193,58 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ isOpen, onClose, onSuccess,
 
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <label className="block text-sm font-medium text-gray-300">
-                  Sócios
-                </label>
+                <div className="flex items-center gap-2 text-gray-300">
+                  <Users size={20} />
+                  <span className="text-sm font-medium">Sócios</span>
+                </div>
                 <button
                   type="button"
                   onClick={addSocio}
-                  className="text-blue-500 hover:text-blue-400 flex items-center gap-1.5 transition-colors"
+                  className="text-blue-500 hover:text-blue-400 flex items-center gap-1.5 transition-colors text-sm"
                 >
                   <Plus size={16} />
-                  Adicionar Sócio
+                  Adicionar
                 </button>
               </div>
 
-              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
                 {formData.socios.map((socio, index) => (
-                  <div key={index} className="space-y-4 p-4 bg-[#2b2b2b] rounded-xl relative">
-                    <button
-                      type="button"
-                      onClick={() => removeSocio(index)}
-                      className="absolute top-3 right-3 text-red-500 hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-
-                    <Input
-                      label="Nome do Sócio"
-                      value={socio.nome}
-                      onChange={(e) => updateSocio(index, 'nome', e.target.value)}
-                      required
-                    />
-
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-300">
-                        CPF
-                      </label>
-                      <InputMask
-                        mask="999.999.999-99"
-                        value={socio.cpf}
-                        onChange={(e) => updateSocio(index, 'cpf', e.target.value)}
-                        className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="000.000.000-00"
+                  <div key={index} className="flex gap-3 items-start">
+                    <div className="flex-1 grid grid-cols-3 gap-2">
+                      <Input
+                        label="Nome"
+                        value={socio.nome}
+                        onChange={(e) => updateSocio(index, 'nome', e.target.value)}
+                        required
+                      />
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-300">CPF</label>
+                        <InputMask
+                          mask="999.999.999-99"
+                          value={socio.cpf}
+                          onChange={(e) => updateSocio(index, 'cpf', e.target.value)}
+                          className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="000.000.000-00"
+                          required
+                        />
+                      </div>
+                      <Input
+                        type="number"
+                        label="Participação (%)"
+                        value={socio.participacao.toString()}
+                        onChange={(e) => updateSocio(index, 'participacao', parseFloat(e.target.value))}
+                        min="0"
+                        max="100"
                         required
                       />
                     </div>
-
-                    <Input
-                      type="number"
-                      label="Participação (%)"
-                      value={socio.participacao.toString()}
-                      onChange={(e) => updateSocio(index, 'participacao', parseFloat(e.target.value))}
-                      min="0"
-                      max="100"
-                      required
-                    />
+                    <button
+                      type="button"
+                      onClick={() => removeSocio(index)}
+                      className="mt-8 p-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 ))}
               </div>

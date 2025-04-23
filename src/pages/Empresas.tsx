@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Eye, Pencil, Trash2, Building2, Users, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import Card from '../components/Card';
 import Button from '../components/forms/Button';
@@ -86,7 +86,7 @@ const Empresas: React.FC = () => {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold text-gray-300">Gestão de Empresas</h2>
+              <h2 className="text-2xl font-bold text-white">Gestão de Empresas</h2>
               <p className="text-gray-400 mt-1">
                 Gerencie as empresas cadastradas no sistema e seus dados
               </p>
@@ -96,10 +96,10 @@ const Empresas: React.FC = () => {
                 setEditingCompany(undefined);
                 setIsModalOpen(true);
               }}
-              className="px-2 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-1.5 text-sm transition-colors"
+              className="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl flex items-center gap-2 text-sm font-medium transition-colors"
             >
-              <Plus size={14} />
-              Nova
+              <Plus size={18} />
+              Nova Empresa
             </button>
           </div>
 
@@ -130,20 +130,23 @@ const Empresas: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-400">
-                      <strong>Razão Social:</strong> {empresa.razao_social}
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-300 flex items-center gap-2">
+                      <Building2 size={16} className="text-gray-400" />
+                      <span><strong>Razão Social:</strong> {empresa.razao_social}</span>
                     </p>
-                    <p className="text-sm text-gray-400">
-                      <strong>Sócios:</strong>{' '}
+                    <p className="text-sm text-gray-300 flex items-center gap-2">
+                      <Users size={16} className="text-gray-400" />
+                      <span><strong>Sócios:</strong>{' '}
                       {empresa.socios?.length
                         ? empresa.socios.length
-                        : 'Nenhum sócio cadastrado'}
+                        : 'Nenhum sócio cadastrado'}</span>
                     </p>
                     {empresa.data_contrato && (
-                      <p className="text-sm text-gray-400">
-                        <strong>Cliente desde:</strong>{' '}
-                        {calcularTempoCliente(empresa.data_contrato)} meses
+                      <p className="text-sm text-gray-300 flex items-center gap-2">
+                        <Calendar size={16} className="text-gray-400" />
+                        <span><strong>Cliente há:</strong>{' '}
+                        {calcularTempoCliente(empresa.data_contrato)} meses</span>
                       </p>
                     )}
                   </div>
