@@ -12,6 +12,7 @@ interface Usuario {
   cargo: string | null;
   ativo: boolean;
   created_at: string;
+  auth_id: string;
 }
 
 const Usuarios: React.FC = () => {
@@ -26,6 +27,10 @@ const Usuarios: React.FC = () => {
 
   const carregarUsuarios = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      // Buscar todos os usuários diretamente
       const { data, error } = await supabase
         .from('usuarios')
         .select('*')
