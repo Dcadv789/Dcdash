@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog } from '@headlessui/react';
-import { X } from 'lucide-react';
+import { X, User, Building2, Shield } from 'lucide-react';
 import Select from 'react-select';
 import { supabase } from '../../lib/supabase';
-import Input from './Input';
 import Button from './Button';
 
 interface Empresa {
   id: string;
-  nome: string;
+  razao_social: string;
+  nome_fantasia: string;
 }
 
 interface UserModalProps {
@@ -52,6 +52,16 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
         ativo: editingUser.ativo,
         selectedEmpresas: []
       });
+    } else {
+      setFormData({
+        nome: '',
+        email: '',
+        permissao: 'viewer',
+        empresa_id: '',
+        cargo: '',
+        ativo: true,
+        selectedEmpresas: []
+      });
     }
   }, [editingUser]);
 
@@ -92,6 +102,20 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
           .insert([userData]);
 
         if (userError) throw userError;
+
+        // Se for consultor, criar relações com empresas
+        if (formData.permissao === 'consultor' && formData.selectedEmpresas.length > 0) {
+          const relacoes = formData.selectedEmpresas.map(empresaId => ({
+            usuario_id: authData.user.id,
+            empresa_id: empresaId
+          }));
+
+          const { error: relError } = await supabase
+            .from('usuarios_empresas')
+            .insert(relacoes);
+
+          if (relError) throw relError;
+        }
       } else {
         // Atualizar usuário existente
         const userData = {
@@ -109,6 +133,29 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
           .eq('id', editingUser.id);
 
         if (userError) throw userError;
+
+        // Atualizar relações de empresas para consultores
+        if (formData.permissao === 'consultor') {
+          // Primeiro remove todas as relações existentes
+          await supabase
+            .from('usuarios_empresas')
+            .delete()
+            .eq('usuario_id', editingUser.id);
+
+          // Depois adiciona as novas relações
+          if (formData.selectedEmpresas.length > 0) {
+            const relacoes = formData.selectedEmpresas.map(empresaId => ({
+              usuario_id: editingUser.id,
+              empresa_id: empresaId
+            }));
+
+            const { error: relError } = await supabase
+              .from('usuarios_empresas')
+              .insert(relacoes);
+
+            if (relError) throw relError;
+          }
+        }
       }
 
       onSuccess();
@@ -123,7 +170,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
 
   const empresasOptions = empresas.map(empresa => ({
     value: empresa.id,
-    label: empresa.nome
+    label: empresa.nome_fantasia || empresa.razao_social
   }));
 
   return (
@@ -131,60 +178,83 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
       <div className="fixed inset-0 bg-black/70" aria-hidden="true" />
       
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="w-full max-w-md bg-[#1e1e1e] rounded-2xl p-6">
-          <div className="flex justify-between items-center mb-4">
-            <Dialog.Title className="text-xl font-bold">
+        <Dialog.Panel className="w-full max-w-2xl bg-[#1e1e1e] rounded-2xl p-6">
+          <div className="flex justify-between items-center mb-6">
+            <Dialog.Title className="text-2xl font-bold text-white">
               {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
             </Dialog.Title>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white"
+              className="text-gray-400 hover:text-white transition-colors"
             >
               <X size={24} />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Nome"
-              value={formData.nome}
-              onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-              required
-            />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                  <User size={16} className="text-gray-400" />
+                  Nome
+                </label>
+                <input
+                  value={formData.nome}
+                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                  className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
 
-            <Input
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-            />
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                  <Shield size={16} className="text-gray-400" />
+                  Permissão
+                </label>
+                <select
+                  value={formData.permissao}
+                  onChange={(e) => setFormData({ ...formData, permissao: e.target.value })}
+                  className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="cliente">Cliente</option>
+                  <option value="consultor">Consultor</option>
+                  <option value="master">Master</option>
+                </select>
+              </div>
+            </div>
 
-            <Input
-              label="Cargo"
-              value={formData.cargo}
-              onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Permissão
-              </label>
-              <select
-                value={formData.permissao}
-                onChange={(e) => setFormData({ ...formData, permissao: e.target.value })}
-                className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="viewer">Viewer</option>
-                <option value="cliente">Cliente</option>
-                <option value="consultor">Consultor</option>
-                <option value="master">Master</option>
-              </select>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                  <Building2 size={16} className="text-gray-400" />
+                  Cargo
+                </label>
+                <input
+                  value={formData.cargo}
+                  onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                  className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
 
             {['cliente', 'viewer'].includes(formData.permissao) && (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                  <Building2 size={16} className="text-gray-400" />
                   Empresa
                 </label>
                 <select
@@ -196,7 +266,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
                   <option value="">Selecione uma empresa</option>
                   {empresas.map(empresa => (
                     <option key={empresa.id} value={empresa.id}>
-                      {empresa.nome}
+                      {empresa.nome_fantasia || empresa.razao_social}
                     </option>
                   ))}
                 </select>
@@ -205,7 +275,8 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
 
             {formData.permissao === 'consultor' && (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                  <Building2 size={16} className="text-gray-400" />
                   Empresas
                 </label>
                 <Select
@@ -259,7 +330,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
             )}
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
                 Status
               </label>
               <select

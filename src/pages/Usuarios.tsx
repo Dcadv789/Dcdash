@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import Card from '../components/Card';
-import Button from '../components/forms/Button';
 import UserModal from '../components/forms/UserModal';
 
 interface Usuario {
@@ -80,16 +79,16 @@ const Usuarios: React.FC = () => {
                 Gerencie os usuários do sistema e suas permissões de acesso
               </p>
             </div>
-            <Button
+            <button
               onClick={() => {
                 setEditingUser(undefined);
                 setIsModalOpen(true);
               }}
-              className="!w-auto !px-3 !py-2 !bg-blue-600 hover:!bg-blue-700 flex items-center gap-2"
+              className="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl flex items-center gap-2 text-sm font-medium transition-colors"
             >
-              <Plus size={16} />
+              <Plus size={18} />
               Novo Usuário
-            </Button>
+            </button>
           </div>
 
           {loading ? (
@@ -100,7 +99,7 @@ const Usuarios: React.FC = () => {
             <div className="overflow-x-auto rounded-xl border border-gray-800">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-900">
+                  <tr className="bg-[#2b2b2b]">
                     <th className="px-6 py-4 text-left text-sm text-gray-400 font-medium">Nome</th>
                     <th className="px-6 py-4 text-left text-sm text-gray-400 font-medium">Email</th>
                     <th className="px-6 py-4 text-left text-sm text-gray-400 font-medium">Cargo</th>
@@ -111,7 +110,7 @@ const Usuarios: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-800">
                   {usuarios.map((usuario) => (
-                    <tr key={usuario.id} className="hover:bg-gray-900/50">
+                    <tr key={usuario.id} className="hover:bg-[#2b2b2b]/50">
                       <td className="px-6 py-4 whitespace-nowrap">{usuario.nome}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{usuario.email}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{usuario.cargo || '-'}</td>
