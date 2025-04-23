@@ -12,6 +12,7 @@ interface Empresa {
   cnpj: string;
   ativo: boolean;
   socios: any[];
+  data_contrato: string;
   created_at: string;
 }
 
@@ -68,6 +69,17 @@ const Empresas: React.FC = () => {
       : 'bg-red-500/10 text-red-500';
   };
 
+  const calcularTempoCliente = (dataContrato: string) => {
+    if (!dataContrato) return null;
+    
+    const inicio = new Date(dataContrato);
+    const hoje = new Date();
+    const diffMeses = (hoje.getFullYear() - inicio.getFullYear()) * 12 + 
+                     (hoje.getMonth() - inicio.getMonth());
+    
+    return diffMeses;
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -79,16 +91,16 @@ const Empresas: React.FC = () => {
                 Gerencie as empresas cadastradas no sistema e seus dados
               </p>
             </div>
-            <Button
+            <button
               onClick={() => {
                 setEditingCompany(undefined);
                 setIsModalOpen(true);
               }}
-              className="!w-auto !px-2 !py-1.5 !bg-blue-500 hover:!bg-blue-600 flex items-center gap-1.5 text-sm"
+              className="px-2 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-1.5 text-sm transition-colors"
             >
               <Plus size={14} />
               Nova
-            </Button>
+            </button>
           </div>
 
           {loading ? (
@@ -100,7 +112,7 @@ const Empresas: React.FC = () => {
               {empresas.map((empresa) => (
                 <div
                   key={empresa.id}
-                  className="bg-gray-900 rounded-xl p-6 border border-gray-800"
+                  className="bg-[#1e1e1e] rounded-xl p-6 border border-gray-800"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -128,6 +140,12 @@ const Empresas: React.FC = () => {
                         ? empresa.socios.length
                         : 'Nenhum sócio cadastrado'}
                     </p>
+                    {empresa.data_contrato && (
+                      <p className="text-sm text-gray-400">
+                        <strong>Cliente desde:</strong>{' '}
+                        {calcularTempoCliente(empresa.data_contrato)} meses
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex justify-end space-x-2 mt-4">

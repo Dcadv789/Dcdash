@@ -9,7 +9,7 @@ const Button: React.FC<ButtonProps> = ({ children, loading, ...props }) => {
     <button
       {...props}
       disabled={loading || props.disabled}
-      className="w-full px-4 py-3 bg-purple-600 text-white rounded-xl font-medium transition-all hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#1e1e1e] disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-medium transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#1e1e1e] disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {loading ? (
         <div className="flex items-center justify-center">
