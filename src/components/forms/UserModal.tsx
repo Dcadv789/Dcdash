@@ -76,37 +76,35 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
     setError('');
 
     try {
-      if (!editingUser) {
-        // Criar novo usuário no auth
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: formData.email,
-          password: 'senha123', // Senha temporária
-          email_confirm: true
-        });
+      // Atualizar usuário existente
+      const userData = {
+        nome: formData.nome,
+        email: formData.email,
+        permissao: formData.permissao,
+        empresa_id: ['cliente', 'viewer'].includes(formData.permissao) ? formData.empresa_id : null,
+        cargo: formData.cargo || null,
+        ativo: formData.ativo
+      };
 
-        if (authError) throw authError;
+      const { error: userError } = await supabase
+        .from('usuarios')
+        .update(userData)
+        .eq('id', editingUser!.id);
 
-        // Criar usuário na tabela usuarios
-        const userData = {
-          auth_id: authData.user.id,
-          nome: formData.nome,
-          email: formData.email,
-          permissao: formData.permissao,
-          empresa_id: ['cliente', 'viewer'].includes(formData.permissao) ? formData.empresa_id : null,
-          cargo: formData.cargo || null,
-          ativo: formData.ativo
-        };
+      if (userError) throw userError;
 
-        const { error: userError } = await supabase
-          .from('usuarios')
-          .insert([userData]);
+      // Atualizar relações de empresas para consultores
+      if (formData.permissao === 'consultor') {
+        // Primeiro remove todas as relações existentes
+        await supabase
+          .from('usuarios_empresas')
+          .delete()
+          .eq('usuario_id', editingUser!.id);
 
-        if (userError) throw userError;
-
-        // Se for consultor, criar relações com empresas
-        if (formData.permissao === 'consultor' && formData.selectedEmpresas.length > 0) {
+        // Depois adiciona as novas relações
+        if (formData.selectedEmpresas.length > 0) {
           const relacoes = formData.selectedEmpresas.map(empresaId => ({
-            usuario_id: authData.user.id,
+            usuario_id: editingUser!.id,
             empresa_id: empresaId
           }));
 
@@ -115,46 +113,6 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
             .insert(relacoes);
 
           if (relError) throw relError;
-        }
-      } else {
-        // Atualizar usuário existente
-        const userData = {
-          nome: formData.nome,
-          email: formData.email,
-          permissao: formData.permissao,
-          empresa_id: ['cliente', 'viewer'].includes(formData.permissao) ? formData.empresa_id : null,
-          cargo: formData.cargo || null,
-          ativo: formData.ativo
-        };
-
-        const { error: userError } = await supabase
-          .from('usuarios')
-          .update(userData)
-          .eq('id', editingUser.id);
-
-        if (userError) throw userError;
-
-        // Atualizar relações de empresas para consultores
-        if (formData.permissao === 'consultor') {
-          // Primeiro remove todas as relações existentes
-          await supabase
-            .from('usuarios_empresas')
-            .delete()
-            .eq('usuario_id', editingUser.id);
-
-          // Depois adiciona as novas relações
-          if (formData.selectedEmpresas.length > 0) {
-            const relacoes = formData.selectedEmpresas.map(empresaId => ({
-              usuario_id: editingUser.id,
-              empresa_id: empresaId
-            }));
-
-            const { error: relError } = await supabase
-              .from('usuarios_empresas')
-              .insert(relacoes);
-
-            if (relError) throw relError;
-          }
         }
       }
 
@@ -181,7 +139,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
         <Dialog.Panel className="w-full max-w-2xl bg-[#1e1e1e] rounded-2xl p-6">
           <div className="flex justify-between items-center mb-6">
             <Dialog.Title className="text-2xl font-bold text-white">
-              {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
+              Editar Usuário
             </Dialog.Title>
             <button
               onClick={onClose}
@@ -235,6 +193,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-4 py-3 bg-[#2b2b2b] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
+                  readOnly
                 />
               </div>
 
@@ -358,7 +317,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess, editi
                 Cancelar
               </Button>
               <Button type="submit" loading={loading}>
-                {editingUser ? 'Salvar' : 'Criar'}
+                Salvar
               </Button>
             </div>
           </form>

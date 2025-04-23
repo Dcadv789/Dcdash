@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import UserModal from '../components/forms/UserModal';
 
@@ -27,10 +27,6 @@ const Usuarios: React.FC = () => {
 
   const carregarUsuarios = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      // Buscar todos os usuários diretamente
       const { data, error } = await supabase
         .from('usuarios')
         .select('*')
@@ -75,23 +71,11 @@ const Usuarios: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Gestão de Usuários</h2>
-            <p className="text-gray-400 mt-1">
-              Gerencie os usuários do sistema e suas permissões de acesso
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              setEditingUser(undefined);
-              setIsModalOpen(true);
-            }}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
-          >
-            <Plus size={18} />
-            Novo Usuário
-          </button>
+        <div>
+          <h2 className="text-2xl font-bold text-white">Gestão de Usuários</h2>
+          <p className="text-gray-400 mt-1">
+            Gerencie os usuários do sistema e suas permissões de acesso
+          </p>
         </div>
 
         {loading ? (
