@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
-import { DreConfiguracao, Empresa } from '../types/database';
+import { DreConfiguracao, Empresa, Indicador } from '../types/database';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { ErrorAlert } from '../components/shared/ErrorAlert';
 import { EmptyState } from '../components/shared/EmptyState';
@@ -12,6 +12,11 @@ interface ContaCalculada extends DreConfiguracao {
   valores: { [key: string]: number };
   total12Meses: number;
   contas_filhas?: ContaCalculada[];
+}
+
+interface IndicadorComponente {
+  indicador_id: string | null;
+  categoria_id: string | null;
 }
 
 const DrePage: React.FC = () => {
@@ -31,7 +36,6 @@ const DrePage: React.FC = () => {
       .order('razao_social'),
   });
 
-  // Buscar contas do DRE associadas à empresa selecionada
   const { data: contas } = useSupabaseQuery<DreConfiguracao>({
     query: () => {
       if (!selectedEmpresa) return Promise.resolve({ data: [] });
@@ -57,15 +61,12 @@ const DrePage: React.FC = () => {
     dependencies: [selectedEmpresa],
   });
 
-  // Gerar array de meses para visualização
   const getMesesVisualizacao = () => {
     const meses = [];
     let currentDate = new Date(selectedYear, selectedMonth - 1);
     
-    // Voltar 12 meses
     currentDate.setMonth(currentDate.getMonth() - 12);
     
-    // Gerar array com 13 meses (mês atual + 12 meses anteriores)
     for (let i = 0; i < 13; i++) {
       meses.push({
         mes: currentDate.getMonth() + 1,
@@ -77,11 +78,85 @@ const DrePage: React.FC = () => {
     return meses;
   };
 
-  useEffect(() => {
-    if (selectedEmpresa && selectedYear && selectedMonth) {
-      calcularValores();
+  const calcularValorIndicador = async (
+    indicadorId: string,
+    mes: number,
+    ano: number,
+    empresaId: string,
+    cache: Map<string, number>
+  ): Promise<number> => {
+    const cacheKey = `${indicadorId}-${mes}-${ano}`;
+    if (cache.has(cacheKey)) {
+      return cache.get(cacheKey)!;
     }
-  }, [selectedEmpresa, selectedYear, selectedMonth, contas]);
+
+    // Verificar se é indicador composto
+    const { data: indicador } = await supabase
+      .from('indicadores')
+      .select('*')
+      .eq('id', indicadorId)
+      .single();
+
+    if (!indicador) return 0;
+
+    if (indicador.tipo === 'único') {
+      // Buscar diretamente na tabela de lançamentos
+      const { data: lancamentos } = await supabase
+        .from('lancamentos')
+        .select('*')
+        .eq('indicador_id', indicadorId)
+        .eq('empresa_id', empresaId)
+        .eq('mes', mes)
+        .eq('ano', ano);
+
+      const valor = lancamentos?.reduce((sum, l) => 
+        sum + (l.tipo === 'receita' ? l.valor : -l.valor), 0) || 0;
+      
+      cache.set(cacheKey, valor);
+      return valor;
+    } else {
+      // Buscar componentes do indicador
+      const { data: componentes } = await supabase
+        .from('indicador_composicoes')
+        .select(`
+          indicador_id,
+          categoria_id
+        `)
+        .eq('indicador_id', indicadorId);
+
+      if (!componentes) return 0;
+
+      let valorTotal = 0;
+      for (const componente of componentes) {
+        if (componente.indicador_id) {
+          // Calcular recursivamente
+          const valorIndicador = await calcularValorIndicador(
+            componente.indicador_id,
+            mes,
+            ano,
+            empresaId,
+            cache
+          );
+          valorTotal += valorIndicador;
+        } else if (componente.categoria_id) {
+          // Buscar lançamentos da categoria
+          const { data: lancamentos } = await supabase
+            .from('lancamentos')
+            .select('*')
+            .eq('categoria_id', componente.categoria_id)
+            .eq('empresa_id', empresaId)
+            .eq('mes', mes)
+            .eq('ano', ano);
+
+          valorTotal += lancamentos?.reduce((sum, l) => 
+            sum + (l.tipo === 'receita' ? l.valor : -l.valor), 0) || 0;
+        }
+      }
+
+      cache.set(cacheKey, valorTotal);
+      return valorTotal;
+    }
+  };
 
   const calcularValores = async () => {
     if (!selectedEmpresa || !contas?.length) return;
@@ -94,7 +169,6 @@ const DrePage: React.FC = () => {
       const periodoInicial = meses[0];
       const periodoFinal = meses[meses.length - 1];
 
-      // Buscar todos os componentes e lançamentos de uma vez
       const [{ data: componentes }, { data: lancamentos }] = await Promise.all([
         supabase
           .from('dre_conta_componentes')
@@ -121,11 +195,11 @@ const DrePage: React.FC = () => {
 
       if (!componentes || !lancamentos) throw new Error('Erro ao buscar dados');
 
-      // Organizar contas em hierarquia e calcular valores
       const contasMap = new Map<string, ContaCalculada>();
       const contasRaiz: ContaCalculada[] = [];
+      const cacheIndicadores = new Map<string, number>();
 
-      // Inicializar todas as contas com valores zerados para cada mês
+      // Inicializar contas
       contas.forEach(conta => {
         const valores: { [key: string]: number } = {};
         meses.forEach(({ mes, ano }) => {
@@ -140,38 +214,39 @@ const DrePage: React.FC = () => {
       });
 
       // Calcular valores para cada mês
-      componentes.forEach(componente => {
+      for (const componente of componentes) {
         const conta = contasMap.get(componente.conta_id);
-        if (!conta) return;
+        if (!conta) continue;
 
-        meses.forEach(({ mes, ano }) => {
+        for (const { mes, ano } of meses) {
           let valor = 0;
 
-          // Calcular valor baseado em categoria
           if (componente.categoria_id) {
             valor = lancamentos
               .filter(l => l.categoria_id === componente.categoria_id && l.mes === mes && l.ano === ano)
               .reduce((sum, l) => sum + (l.tipo === 'receita' ? l.valor : -l.valor), 0);
-          }
-          // Calcular valor baseado em indicador
-          else if (componente.indicador_id) {
-            valor = lancamentos
-              .filter(l => l.indicador_id === componente.indicador_id && l.mes === mes && l.ano === ano)
-              .reduce((sum, l) => sum + (l.tipo === 'receita' ? l.valor : -l.valor), 0);
+          } else if (componente.indicador_id) {
+            valor = await calcularValorIndicador(
+              componente.indicador_id,
+              mes,
+              ano,
+              selectedEmpresa,
+              cacheIndicadores
+            );
           }
 
           conta.valores[`${ano}-${mes}`] += componente.simbolo === '+' ? valor : -valor;
-        });
-      });
+        }
+      }
 
       // Calcular total dos últimos 12 meses
       contasMap.forEach(conta => {
         conta.total12Meses = meses
-          .slice(1) // Excluir o primeiro mês (13 meses atrás)
+          .slice(1)
           .reduce((total, { mes, ano }) => total + conta.valores[`${ano}-${mes}`], 0);
       });
 
-      // Organizar hierarquia e propagar valores
+      // Organizar hierarquia
       contas.forEach(conta => {
         const contaCalculada = contasMap.get(conta.id)!;
         
@@ -181,7 +256,6 @@ const DrePage: React.FC = () => {
             if (!contaPai.contas_filhas) contaPai.contas_filhas = [];
             contaPai.contas_filhas.push(contaCalculada);
             
-            // Propagar valores para a conta pai
             meses.forEach(({ mes, ano }) => {
               contaPai.valores[`${ano}-${mes}`] += contaCalculada.valores[`${ano}-${mes}`];
             });
@@ -192,7 +266,6 @@ const DrePage: React.FC = () => {
         }
       });
 
-      // Ordenar contas filhas pela ordem
       const ordenarContasFilhas = (contas: ContaCalculada[]) => {
         contas.sort((a, b) => a.ordem - b.ordem);
         contas.forEach(conta => {
@@ -211,6 +284,12 @@ const DrePage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (selectedEmpresa && selectedYear && selectedMonth) {
+      calcularValores();
+    }
+  }, [selectedEmpresa, selectedYear, selectedMonth, contas]);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorAlert message={error} />;
