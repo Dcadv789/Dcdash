@@ -2,17 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+body {
+  @apply bg-gray-900 text-gray-200;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.animate-notification {
-  animation: slideIn 0.3s ease-out forwards;
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
+
+.transition-sidebar {
+  transition: width 0.3s ease-in-out, margin-left 0.3s ease-in-out;
+}
+
+/* Smoothly animate all transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
