@@ -7,7 +7,7 @@ import { ErrorAlert } from '../components/shared/ErrorAlert';
 import { EmptyState } from '../components/shared/EmptyState';
 import { Button } from '../components/shared/Button';
 import DashboardConfigList from '../components/dashboard/DashboardConfigList';
-import DashboardFilters from '../components/dashboard/DashboardFilters';
+import DashboardConfigFilters from '../components/dashboard/DashboardConfigFilters';
 import DashboardConfigModal from '../components/dashboard/DashboardConfigModal';
 import DashboardComponentsPanel from '../components/dashboard/DashboardComponentsPanel';
 
@@ -111,7 +111,7 @@ const ConfigDashboardPage: React.FC = () => {
         </Button>
       </div>
 
-      <DashboardFilters
+      <DashboardConfigFilters
         selectedEmpresa={selectedEmpresa}
         selectedType={selectedType}
         showInactive={showInactive}
