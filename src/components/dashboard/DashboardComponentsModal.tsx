@@ -15,12 +15,12 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedComponents, setSelectedComponents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [categorias, setCategorias] = useState<any[]>([]);
   const [indicadores, setIndicadores] = useState<any[]>([]);
+  const [selectedComponents, setSelectedComponents] = useState<any[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -70,22 +70,22 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Remover componentes existentes
+      // Remove componentes existentes
       await supabase
         .from('dashboard_chart_components')
         .delete()
         .eq('dashboard_id', config.id);
 
-      // Inserir novos componentes
+      // Insere novos componentes
       if (selectedComponents.length > 0) {
         const { error } = await supabase
           .from('dashboard_chart_components')
           .insert(
-            selectedComponents.map(comp => ({
+            selectedComponents.map((comp, index) => ({
               dashboard_id: config.id,
               categoria_id: comp.categoria?.id || null,
               indicador_id: comp.indicador?.id || null,
-              ordem: comp.ordem || 1,
+              ordem: index + 1,
               cor: comp.cor || '#3B82F6'
             }))
           );
@@ -113,15 +113,14 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
     ind.codigo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const addComponente = (tipo: 'categoria' | 'indicador', item: any) => {
+  const addComponent = (tipo: 'categoria' | 'indicador', item: any) => {
     setSelectedComponents(prev => [...prev, {
       [tipo]: item,
-      cor: '#3B82F6',
-      ordem: prev.length + 1
+      cor: '#3B82F6'
     }]);
   };
 
-  const removeComponente = (index: number) => {
+  const removeComponent = (index: number) => {
     setSelectedComponents(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -151,83 +150,101 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gray-700 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-400 mb-3">Itens Disponíveis</h4>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-              <div className="mb-4">
-                <h5 className="text-sm font-medium text-gray-500 mb-2">Categorias</h5>
-                {filteredCategorias.map(categoria => (
-                  <button
-                    key={`cat-${categoria.id}`}
-                    onClick={() => addComponente('categoria', categoria)}
-                    className="w-full text-left p-2 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
-                    disabled={selectedComponents.some(c => c.categoria?.id === categoria.id)}
-                  >
-                    <div>
-                      <span className="text-white">{categoria.nome}</span>
-                      <span className="text-gray-400 text-sm ml-2">({categoria.codigo})</span>
-                    </div>
-                    <ArrowRight size={16} className="text-gray-400" />
-                  </button>
-                ))}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Coluna da esquerda - Itens disponíveis */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-white mb-2">Itens Disponíveis</h3>
+            
+            <div className="space-y-4">
+              <div className="bg-gray-700 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-400 mb-3">Categorias</h4>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {filteredCategorias
+                    .filter(cat => !selectedComponents.some(c => c.categoria?.id === cat.id))
+                    .map(categoria => (
+                      <button
+                        key={categoria.id}
+                        onClick={() => addComponent('categoria', categoria)}
+                        className="w-full text-left p-2 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between group"
+                      >
+                        <div>
+                          <span className="text-white">{categoria.nome}</span>
+                          <span className="text-gray-400 text-sm ml-2">({categoria.codigo})</span>
+                        </div>
+                        <ArrowRight size={16} className="text-gray-400 opacity-0 group-hover:opacity-100" />
+                      </button>
+                    ))}
+                </div>
               </div>
-              <div>
-                <h5 className="text-sm font-medium text-gray-500 mb-2">Indicadores</h5>
-                {filteredIndicadores.map(indicador => (
-                  <button
-                    key={`ind-${indicador.id}`}
-                    onClick={() => addComponente('indicador', indicador)}
-                    className="w-full text-left p-2 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
-                    disabled={selectedComponents.some(c => c.indicador?.id === indicador.id)}
-                  >
-                    <div>
-                      <span className="text-white">{indicador.nome}</span>
-                      <span className="text-gray-400 text-sm ml-2">({indicador.codigo})</span>
-                    </div>
-                    <ArrowRight size={16} className="text-gray-400" />
-                  </button>
-                ))}
+
+              <div className="bg-gray-700 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-400 mb-3">Indicadores</h4>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {filteredIndicadores
+                    .filter(ind => !selectedComponents.some(c => c.indicador?.id === ind.id))
+                    .map(indicador => (
+                      <button
+                        key={indicador.id}
+                        onClick={() => addComponent('indicador', indicador)}
+                        className="w-full text-left p-2 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between group"
+                      >
+                        <div>
+                          <span className="text-white">{indicador.nome}</span>
+                          <span className="text-gray-400 text-sm ml-2">({indicador.codigo})</span>
+                        </div>
+                        <ArrowRight size={16} className="text-gray-400 opacity-0 group-hover:opacity-100" />
+                      </button>
+                    ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-gray-700 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-400 mb-3">Itens Selecionados</h4>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-              {selectedComponents.map((comp, index) => (
-                <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-600 rounded-lg">
-                  <button
-                    onClick={() => removeComponente(index)}
-                    className="p-1 text-gray-400 hover:text-white hover:bg-gray-500 rounded"
-                  >
-                    <ArrowLeft size={16} />
-                  </button>
-                  <div className="flex-1">
-                    {comp.categoria ? (
-                      <>
-                        <span className="text-white">{comp.categoria.nome}</span>
-                        <span className="text-gray-400 text-sm ml-2">({comp.categoria.codigo})</span>
-                      </>
-                    ) : comp.indicador ? (
-                      <>
-                        <span className="text-white">{comp.indicador.nome}</span>
-                        <span className="text-gray-400 text-sm ml-2">({comp.indicador.codigo})</span>
-                      </>
-                    ) : null}
+          {/* Coluna da direita - Itens selecionados */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-white mb-2">Itens Selecionados</h3>
+            <div className="bg-gray-700 rounded-lg p-4">
+              <div className="space-y-2">
+                {selectedComponents.map((comp, index) => (
+                  <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-600 rounded-lg group">
+                    <button
+                      onClick={() => removeComponent(index)}
+                      className="p-1 text-gray-400 hover:text-white hover:bg-gray-500 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <ArrowLeft size={16} />
+                    </button>
+                    <div className="flex-1">
+                      {comp.categoria ? (
+                        <>
+                          <span className="text-white">{comp.categoria.nome}</span>
+                          <span className="text-gray-400 text-sm ml-2">({comp.categoria.codigo})</span>
+                        </>
+                      ) : comp.indicador ? (
+                        <>
+                          <span className="text-white">{comp.indicador.nome}</span>
+                          <span className="text-gray-400 text-sm ml-2">({comp.indicador.codigo})</span>
+                        </>
+                      ) : null}
+                    </div>
+                    <input
+                      type="color"
+                      value={comp.cor}
+                      onChange={(e) => {
+                        const newComponents = [...selectedComponents];
+                        newComponents[index].cor = e.target.value;
+                        setSelectedComponents(newComponents);
+                      }}
+                      className="w-8 h-8 rounded cursor-pointer bg-transparent"
+                    />
                   </div>
-                  <input
-                    type="color"
-                    value={comp.cor}
-                    onChange={(e) => {
-                      const newComponents = [...selectedComponents];
-                      newComponents[index].cor = e.target.value;
-                      setSelectedComponents(newComponents);
-                    }}
-                    className="w-8 h-8 rounded cursor-pointer bg-transparent"
-                  />
-                </div>
-              ))}
+                ))}
+
+                {selectedComponents.length === 0 && (
+                  <p className="text-gray-400 text-center py-4">
+                    Nenhum componente selecionado
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
