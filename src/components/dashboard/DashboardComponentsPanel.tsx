@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calculator } from 'lucide-react';
 import { Button } from '../shared/Button';
+import { supabase } from '../../lib/supabase';
 
 interface DashboardComponentsPanelProps {
   config?: any;
@@ -11,6 +12,98 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
   config,
   onManageComponents,
 }) => {
+  const [componentes, setComponentes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (config) {
+      fetchComponentes();
+    }
+  }, [config]);
+
+  const fetchComponentes = async () => {
+    if (!config) return;
+    
+    setLoading(true);
+    try {
+      let query;
+      
+      // Selecionar a tabela correta baseado no tipo de visualização
+      switch (config.tipo_visualizacao) {
+        case 'card':
+          query = supabase
+            .from('dashboard_card_components')
+            .select(`
+              *,
+              categoria:categorias (
+                id,
+                nome,
+                codigo
+              ),
+              indicador:indicadores (
+                id,
+                nome,
+                codigo
+              )
+            `)
+            .eq('dashboard_id', config.id);
+          break;
+          
+        case 'chart':
+          query = supabase
+            .from('dashboard_chart_components')
+            .select(`
+              *,
+              categoria:categorias (
+                id,
+                nome,
+                codigo
+              ),
+              indicador:indicadores (
+                id,
+                nome,
+                codigo
+              )
+            `)
+            .eq('dashboard_id', config.id);
+          break;
+          
+        case 'list':
+          query = supabase
+            .from('dashboard_list_components')
+            .select(`
+              *,
+              categoria:categorias (
+                id,
+                nome,
+                codigo
+              ),
+              indicador:indicadores (
+                id,
+                nome,
+                codigo
+              ),
+              cliente:clientes (
+                id,
+                razao_social
+              )
+            `)
+            .eq('dashboard_id', config.id);
+          break;
+      }
+
+      if (query) {
+        const { data, error } = await query;
+        if (error) throw error;
+        setComponentes(data || []);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar componentes:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!config) {
     return (
       <div className="bg-gray-800 rounded-xl p-6">
@@ -20,16 +113,6 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
       </div>
     );
   }
-
-  const getComponents = () => {
-    if (config.tipo_visualizacao === 'chart') {
-      return config.chart_components || [];
-    }
-    if (config.tipo_visualizacao === 'list') {
-      return config.list_components || [];
-    }
-    return [];
-  };
 
   const renderComponent = (comp: any) => {
     if (!comp) return null;
@@ -58,7 +141,7 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
     return (
       <div key={comp.id} className="bg-gray-700 rounded-lg p-4">
         <div className="flex items-center gap-3">
-          {config.tipo_visualizacao === 'chart' && (
+          {(config.tipo_visualizacao === 'chart' || config.tipo_visualizacao === 'card') && (
             <div
               className="w-4 h-4 rounded-full"
               style={{ backgroundColor: comp.cor }}
@@ -84,12 +167,16 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
       </div>
 
       <div className="space-y-4">
-        {getComponents().map(renderComponent)}
-
-        {getComponents().length === 0 && (
+        {loading ? (
+          <div className="flex justify-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+          </div>
+        ) : componentes.length === 0 ? (
           <p className="text-gray-400 text-center">
             Nenhum componente configurado
           </p>
+        ) : (
+          componentes.map(renderComponent)
         )}
       </div>
     </div>
