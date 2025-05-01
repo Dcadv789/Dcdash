@@ -9,7 +9,9 @@ import { Button } from '../components/shared/Button';
 import DashboardConfigList from '../components/dashboard/DashboardConfigList';
 import DashboardConfigFilters from '../components/dashboard/DashboardConfigFilters';
 import DashboardConfigModal from '../components/dashboard/DashboardConfigModal';
+import DashboardConfigViewModal from '../components/dashboard/DashboardConfigViewModal';
 import DashboardComponentsPanel from '../components/dashboard/DashboardComponentsPanel';
+import DashboardComponentsModal from '../components/dashboard/DashboardComponentsModal';
 
 const ConfigDashboardPage: React.FC = () => {
   const [selectedEmpresa, setSelectedEmpresa] = useState<string>('');
@@ -141,10 +143,6 @@ const ConfigDashboardPage: React.FC = () => {
                   setSelectedConfig(config);
                   setIsModalOpen(true);
                 }}
-                onManageComponents={(config) => {
-                  setSelectedConfig(config);
-                  setIsComponentsModalOpen(true);
-                }}
                 onToggleActive={handleToggleActive}
               />
             )}
@@ -170,8 +168,30 @@ const ConfigDashboardPage: React.FC = () => {
           onSave={refetch}
         />
       )}
+
+      {isViewModalOpen && selectedConfig && (
+        <DashboardConfigViewModal
+          config={selectedConfig}
+          onClose={() => {
+            setSelectedConfig(null);
+            setIsViewModalOpen(false);
+          }}
+        />
+      )}
+
+      {isComponentsModalOpen && selectedConfig && (
+        <DashboardComponentsModal
+          config={selectedConfig}
+          onClose={() => {
+            setIsComponentsModalOpen(false);
+          }}
+          onSave={() => {
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
-};
+}
 
 export default ConfigDashboardPage;
