@@ -60,8 +60,7 @@ const ConfigDashboardPage: React.FC = () => {
             )
           )
         `)
-        .eq('empresa_id', selectedEmpresa)
-        .order('posicao');
+        .eq('empresa_id', selectedEmpresa);
 
       if (!showInactive) {
         query = query.eq('ativo', true);
@@ -71,10 +70,25 @@ const ConfigDashboardPage: React.FC = () => {
         query = query.eq('tipo_visualizacao', selectedType);
       }
 
-      return query;
+      return query.order('posicao');
     },
     dependencies: [selectedEmpresa, selectedType, showInactive],
   });
+
+  const handleToggleActive = async (config: any) => {
+    try {
+      const { error } = await supabase
+        .from('dashboard_config')
+        .update({ ativo: !config.ativo })
+        .eq('id', config.id);
+
+      if (error) throw error;
+      refetch();
+    } catch (err) {
+      console.error('Erro ao atualizar status:', err);
+      alert('Não foi possível atualizar o status da configuração');
+    }
+  };
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorAlert message={error} />;
@@ -131,6 +145,7 @@ const ConfigDashboardPage: React.FC = () => {
                   setSelectedConfig(config);
                   setIsComponentsModalOpen(true);
                 }}
+                onToggleActive={handleToggleActive}
               />
             )}
           </div>

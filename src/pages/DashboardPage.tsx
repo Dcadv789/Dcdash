@@ -32,21 +32,16 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-semibold text-white">Dashboard</h2>
-          <p className="text-gray-400 mt-1">Visualize os principais indicadores</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <DashboardFilters
-            selectedEmpresa={selectedEmpresa}
-            selectedYear={selectedYear}
-            selectedMonth={selectedMonth}
-            empresas={empresas}
-            onEmpresaChange={setSelectedEmpresa}
-            onYearChange={setSelectedYear}
-            onMonthChange={setSelectedMonth}
-          />
-        </div>
+        <h2 className="text-2xl font-semibold text-white">Dashboard</h2>
+        <DashboardFilters
+          selectedEmpresa={selectedEmpresa}
+          selectedYear={selectedYear}
+          selectedMonth={selectedMonth}
+          empresas={empresas}
+          onEmpresaChange={setSelectedEmpresa}
+          onYearChange={setSelectedYear}
+          onMonthChange={setSelectedMonth}
+        />
       </div>
 
       {!selectedEmpresa ? (
