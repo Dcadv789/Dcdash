@@ -18,43 +18,12 @@ const DashboardConfigModal: React.FC<DashboardConfigModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [indicadores, setIndicadores] = useState<any[]>([]);
-  const [categorias, setCategorias] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     posicao: config?.posicao.toString() || '',
     titulo: config?.titulo || '',
     tipo_visualizacao: config?.tipo_visualizacao || 'card',
     tipo_grafico: config?.tipo_grafico || 'line',
-    categoria_id: config?.categoria_id || '',
-    indicador_id: config?.indicador_id || '',
   });
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const [{ data: indicadoresData }, { data: categoriasData }] = await Promise.all([
-        supabase
-          .from('indicadores')
-          .select('*')
-          .eq('ativo', true)
-          .order('codigo'),
-        supabase
-          .from('categorias')
-          .select('*')
-          .eq('ativo', true)
-          .order('codigo')
-      ]);
-
-      if (indicadoresData) setIndicadores(indicadoresData);
-      if (categoriasData) setCategorias(categoriasData);
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err);
-      setError('Erro ao carregar dados necessários');
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,8 +36,6 @@ const DashboardConfigModal: React.FC<DashboardConfigModalProps> = ({
         titulo: formData.titulo,
         tipo_visualizacao: formData.tipo_visualizacao,
         tipo_grafico: formData.tipo_visualizacao === 'chart' ? formData.tipo_grafico : null,
-        categoria_id: formData.categoria_id || null,
-        indicador_id: formData.indicador_id || null,
         empresa_id: empresaId,
       };
 
@@ -145,9 +112,7 @@ const DashboardConfigModal: React.FC<DashboardConfigModalProps> = ({
             value={formData.tipo_visualizacao}
             onChange={(e) => setFormData(prev => ({ 
               ...prev, 
-              tipo_visualizacao: e.target.value as 'card' | 'chart' | 'list',
-              categoria_id: '',
-              indicador_id: ''
+              tipo_visualizacao: e.target.value as 'card' | 'chart' | 'list'
             }))}
             className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
@@ -176,50 +141,6 @@ const DashboardConfigModal: React.FC<DashboardConfigModalProps> = ({
             </select>
           </div>
         )}
-
-        <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">
-            Categoria
-          </label>
-          <select
-            value={formData.categoria_id}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              categoria_id: e.target.value,
-              indicador_id: ''
-            }))}
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Selecione uma categoria</option>
-            {categorias.map(categoria => (
-              <option key={categoria.id} value={categoria.id}>
-                {categoria.nome}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">
-            Indicador
-          </label>
-          <select
-            value={formData.indicador_id}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              indicador_id: e.target.value,
-              categoria_id: ''
-            }))}
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Selecione um indicador</option>
-            {indicadores.map(indicador => (
-              <option key={indicador.id} value={indicador.id}>
-                {indicador.nome}
-              </option>
-            ))}
-          </select>
-        </div>
 
         <div className="flex justify-end gap-3 pt-4">
           <Button

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Pencil, Calculator, Power } from 'lucide-react';
+import { Eye, Pencil, Power, Trash2 } from 'lucide-react';
 
 interface DashboardConfigListProps {
   configs: any[];
@@ -8,8 +8,8 @@ interface DashboardConfigListProps {
   onSelect: (config: any) => void;
   onEdit: (config: any) => void;
   onView: (config: any) => void;
-  onManageComponents: (config: any) => void;
-  onToggleActive?: (config: any) => void;
+  onDelete: (config: any) => void;
+  onToggleActive: (config: any) => void;
 }
 
 const DashboardConfigList: React.FC<DashboardConfigListProps> = ({
@@ -18,7 +18,7 @@ const DashboardConfigList: React.FC<DashboardConfigListProps> = ({
   onSelect,
   onEdit,
   onView,
-  onManageComponents,
+  onDelete,
   onToggleActive,
 }) => {
   return (
@@ -69,29 +69,27 @@ const DashboardConfigList: React.FC<DashboardConfigListProps> = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onManageComponents(config);
+                      onToggleActive(config);
                     }}
-                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
-                    title="Gerenciar Componentes"
+                    className={`p-2 rounded-lg ${
+                      config.ativo 
+                        ? 'text-green-500 hover:text-green-400'
+                        : 'text-red-500 hover:text-red-400'
+                    } hover:bg-gray-700`}
+                    title={config.ativo ? 'Desativar' : 'Ativar'}
                   >
-                    <Calculator size={18} />
+                    <Power size={18} />
                   </button>
-                  {onToggleActive && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleActive(config);
-                      }}
-                      className={`p-2 rounded-lg transition-colors ${
-                        config.ativo 
-                          ? 'text-green-500 hover:text-green-400'
-                          : 'text-red-500 hover:text-red-400'
-                      } hover:bg-gray-700`}
-                      title={config.ativo ? 'Desativar' : 'Ativar'}
-                    >
-                      <Power size={18} />
-                    </button>
-                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(config);
+                    }}
+                    className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded-lg"
+                    title="Excluir"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
               </td>
             </tr>

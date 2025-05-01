@@ -178,19 +178,24 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
             <h4 className="text-sm font-medium text-gray-400 mb-3">Itens Selecionados</h4>
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
               {selectedComponents.map((comp, index) => (
-                <div key={index} className="flex items-center justify-between p-2 hover:bg-gray-600 rounded-lg">
+                <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-600 rounded-lg">
                   <button
                     onClick={() => removeComponent(index)}
                     className="flex items-center gap-2"
                   >
                     <ArrowLeft size={16} className="text-gray-400" />
                     <div>
-                      <span className="text-white">
-                        {comp.categoria?.nome || comp.indicador?.nome}
-                      </span>
-                      <span className="text-gray-400 text-sm ml-2">
-                        ({comp.categoria?.codigo || comp.indicador?.codigo})
-                      </span>
+                      {comp.categoria ? (
+                        <>
+                          <span className="text-white">{comp.categoria.nome}</span>
+                          <span className="text-gray-400 text-sm ml-2">({comp.categoria.codigo})</span>
+                        </>
+                      ) : comp.indicador ? (
+                        <>
+                          <span className="text-white">{comp.indicador.nome}</span>
+                          <span className="text-gray-400 text-sm ml-2">({comp.indicador.codigo})</span>
+                        </>
+                      ) : null}
                     </div>
                   </button>
                   <input
