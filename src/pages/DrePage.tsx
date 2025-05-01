@@ -16,7 +16,8 @@ interface ContaCalculada extends DreConfiguracao {
 
 interface IndicadorComponente {
   indicador_id: string | null;
-  categoria_id: string | null;
+  componente_categoria_id: string | null;
+  componente_indicador_id: string | null;
 }
 
 const DrePage: React.FC = () => {
@@ -90,7 +91,7 @@ const DrePage: React.FC = () => {
       return cache.get(cacheKey)!;
     }
 
-    // Verificar se é indicador composto
+    // Buscar informações do indicador
     const { data: indicador } = await supabase
       .from('indicadores')
       .select('*')
@@ -99,8 +100,10 @@ const DrePage: React.FC = () => {
 
     if (!indicador) return 0;
 
+    let valorTotal = 0;
+
     if (indicador.tipo === 'único') {
-      // Buscar diretamente na tabela de lançamentos
+      // Para indicador simples, buscar diretamente na tabela de lançamentos
       const { data: lancamentos } = await supabase
         .from('lancamentos')
         .select('*')
@@ -109,41 +112,39 @@ const DrePage: React.FC = () => {
         .eq('mes', mes)
         .eq('ano', ano);
 
-      const valor = lancamentos?.reduce((sum, l) => 
+      valorTotal = lancamentos?.reduce((sum, l) => 
         sum + (l.tipo === 'receita' ? l.valor : -l.valor), 0) || 0;
-      
-      cache.set(cacheKey, valor);
-      return valor;
     } else {
-      // Buscar componentes do indicador
+      // Para indicador composto, buscar seus componentes
       const { data: componentes } = await supabase
         .from('indicador_composicoes')
         .select(`
           indicador_id,
-          categoria_id
+          componente_categoria_id,
+          componente_indicador_id
         `)
         .eq('indicador_id', indicadorId);
 
       if (!componentes) return 0;
 
-      let valorTotal = 0;
+      // Calcular valor para cada componente
       for (const componente of componentes) {
-        if (componente.indicador_id) {
-          // Calcular recursivamente
+        if (componente.componente_indicador_id) {
+          // Se o componente for um indicador, calcular recursivamente
           const valorIndicador = await calcularValorIndicador(
-            componente.indicador_id,
+            componente.componente_indicador_id,
             mes,
             ano,
             empresaId,
             cache
           );
           valorTotal += valorIndicador;
-        } else if (componente.categoria_id) {
-          // Buscar lançamentos da categoria
+        } else if (componente.componente_categoria_id) {
+          // Se o componente for uma categoria, buscar lançamentos
           const { data: lancamentos } = await supabase
             .from('lancamentos')
             .select('*')
-            .eq('categoria_id', componente.categoria_id)
+            .eq('categoria_id', componente.componente_categoria_id)
             .eq('empresa_id', empresaId)
             .eq('mes', mes)
             .eq('ano', ano);
@@ -152,10 +153,10 @@ const DrePage: React.FC = () => {
             sum + (l.tipo === 'receita' ? l.valor : -l.valor), 0) || 0;
         }
       }
-
-      cache.set(cacheKey, valorTotal);
-      return valorTotal;
     }
+
+    cache.set(cacheKey, valorTotal);
+    return valorTotal;
   };
 
   const calcularValores = async () => {
@@ -169,6 +170,7 @@ const DrePage: React.FC = () => {
       const periodoInicial = meses[0];
       const periodoFinal = meses[meses.length - 1];
 
+      // Buscar componentes e lançamentos
       const [{ data: componentes }, { data: lancamentos }] = await Promise.all([
         supabase
           .from('dre_conta_componentes')
@@ -222,10 +224,12 @@ const DrePage: React.FC = () => {
           let valor = 0;
 
           if (componente.categoria_id) {
+            // Se for categoria, buscar lançamentos
             valor = lancamentos
               .filter(l => l.categoria_id === componente.categoria_id && l.mes === mes && l.ano === ano)
               .reduce((sum, l) => sum + (l.tipo === 'receita' ? l.valor : -l.valor), 0);
           } else if (componente.indicador_id) {
+            // Se for indicador, calcular valor recursivamente
             valor = await calcularValorIndicador(
               componente.indicador_id,
               mes,
