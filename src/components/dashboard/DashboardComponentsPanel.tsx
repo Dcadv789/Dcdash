@@ -21,6 +21,40 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
     );
   }
 
+  const getComponents = () => {
+    if (config.tipo_visualizacao === 'chart') {
+      return config.chart_components || [];
+    }
+    if (config.tipo_visualizacao === 'list') {
+      return config.list_components || [];
+    }
+    return [];
+  };
+
+  const renderComponent = (comp: any) => {
+    const item = comp.categoria || comp.indicador;
+    if (!item) return null;
+
+    return (
+      <div key={comp.id} className="bg-gray-700 rounded-lg p-4">
+        <div className="flex items-center gap-3">
+          {config.tipo_visualizacao === 'chart' && (
+            <div
+              className="w-4 h-4 rounded-full"
+              style={{ backgroundColor: comp.cor }}
+            />
+          )}
+          <div>
+            <span className="text-white">{item.nome}</span>
+            <span className="text-gray-400 text-sm ml-2">
+              ({item.codigo})
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-gray-800 rounded-xl p-6">
       <div className="flex justify-between items-center mb-6">
@@ -35,35 +69,9 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
       </div>
 
       <div className="space-y-4">
-        {config.chart_components?.map((comp: any) => (
-          <div key={comp.id} className="bg-gray-700 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: comp.cor }}
-              />
-              <div>
-                {comp.categoria ? (
-                  <div>
-                    <span className="text-white">{comp.categoria.nome}</span>
-                    <span className="text-gray-400 text-sm ml-2">
-                      ({comp.categoria.codigo})
-                    </span>
-                  </div>
-                ) : comp.indicador ? (
-                  <div>
-                    <span className="text-white">{comp.indicador.nome}</span>
-                    <span className="text-gray-400 text-sm ml-2">
-                      ({comp.indicador.codigo})
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        ))}
+        {getComponents().map(renderComponent)}
 
-        {(!config.chart_components || config.chart_components.length === 0) && (
+        {getComponents().length === 0 && (
           <p className="text-gray-400 text-center">
             Nenhum componente configurado
           </p>
