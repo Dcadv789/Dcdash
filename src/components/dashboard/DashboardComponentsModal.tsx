@@ -53,48 +53,35 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
       if (clientesData) setClientes(clientesData);
 
       // Buscar componentes existentes baseado no tipo de visualização
-      let componentsData;
+      let componentsTable = '';
       if (config.tipo_visualizacao === 'chart') {
-        const { data } = await supabase
-          .from('dashboard_chart_components')
-          .select(`
-            *,
-            categoria:categorias (
-              id,
-              nome,
-              codigo
-            ),
-            indicador:indicadores (
-              id,
-              nome,
-              codigo
-            )
-          `)
-          .eq('dashboard_id', config.id);
-        componentsData = data;
+        componentsTable = 'dashboard_chart_components';
       } else if (config.tipo_visualizacao === 'list') {
-        const { data } = await supabase
-          .from('dashboard_list_components')
-          .select(`
-            *,
-            categoria:categorias (
-              id,
-              nome,
-              codigo
-            ),
-            indicador:indicadores (
-              id,
-              nome,
-              codigo
-            ),
-            cliente:clientes (
-              id,
-              razao_social
-            )
-          `)
-          .eq('dashboard_id', config.id);
-        componentsData = data;
+        componentsTable = 'dashboard_list_components';
+      } else {
+        componentsTable = 'dashboard_card_components';
       }
+
+      const { data: componentsData } = await supabase
+        .from(componentsTable)
+        .select(`
+          *,
+          categoria:categorias (
+            id,
+            nome,
+            codigo
+          ),
+          indicador:indicadores (
+            id,
+            nome,
+            codigo
+          ),
+          cliente:clientes (
+            id,
+            razao_social
+          )
+        `)
+        .eq('dashboard_id', config.id);
 
       if (componentsData) {
         setSelectedComponents(componentsData);
@@ -130,23 +117,30 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
           cliente_id: comp.cliente?.id || null,
           ordem: index + 1
         }));
+      } else {
+        table = 'dashboard_card_components';
+        componentsData = selectedComponents.map((comp, index) => ({
+          dashboard_id: config.id,
+          categoria_id: comp.categoria?.id || null,
+          indicador_id: comp.indicador?.id || null,
+          ordem: index + 1,
+          cor: comp.cor || '#3B82F6'
+        }));
       }
 
-      if (table) {
-        // Deletar componentes existentes
-        await supabase
+      // Deletar componentes existentes
+      await supabase
+        .from(table)
+        .delete()
+        .eq('dashboard_id', config.id);
+
+      // Inserir novos componentes
+      if (componentsData && componentsData.length > 0) {
+        const { error } = await supabase
           .from(table)
-          .delete()
-          .eq('dashboard_id', config.id);
+          .insert(componentsData);
 
-        // Inserir novos componentes
-        if (componentsData && componentsData.length > 0) {
-          const { error } = await supabase
-            .from(table)
-            .insert(componentsData);
-
-          if (error) throw error;
-        }
+        if (error) throw error;
       }
 
       onSave();
@@ -218,7 +212,7 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <h4 className="text-sm font-medium text-gray-400 mb-3">Itens Disponíveis</h4>
             <div className="space-y-4">
@@ -316,7 +310,7 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
                         <span className="text-white">{comp.cliente.razao_social}</span>
                       ) : null}
                     </div>
-                    {config.tipo_visualizacao === 'chart' && (
+                    {(config.tipo_visualizacao === 'chart' || config.tipo_visualizacao === 'card') && (
                       <input
                         type="color"
                         value={comp.cor}
