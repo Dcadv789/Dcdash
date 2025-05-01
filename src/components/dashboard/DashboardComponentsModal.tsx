@@ -20,6 +20,7 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [categorias, setCategorias] = useState<any[]>([]);
   const [indicadores, setIndicadores] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<any[]>([]);
   const [selectedComponents, setSelectedComponents] = useState<any[]>([]);
 
   useEffect(() => {
@@ -28,7 +29,8 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
 
   const fetchData = async () => {
     try {
-      const [{ data: categoriasData }, { data: indicadoresData }] = await Promise.all([
+      // Buscar dados básicos
+      const [{ data: categoriasData }, { data: indicadoresData }, { data: clientesData }] = await Promise.all([
         supabase
           .from('categorias')
           .select('*')
@@ -38,14 +40,22 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
           .from('indicadores')
           .select('*')
           .eq('ativo', true)
-          .order('codigo')
+          .order('codigo'),
+        supabase
+          .from('clientes')
+          .select('*')
+          .eq('ativo', true)
+          .order('razao_social')
       ]);
 
       if (categoriasData) setCategorias(categoriasData);
       if (indicadoresData) setIndicadores(indicadoresData);
+      if (clientesData) setClientes(clientesData);
 
+      // Buscar componentes existentes baseado no tipo de visualização
+      let componentsData;
       if (config.tipo_visualizacao === 'chart') {
-        const { data: chartComponents } = await supabase
+        const { data } = await supabase
           .from('dashboard_chart_components')
           .select(`
             *,
@@ -61,15 +71,9 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
             )
           `)
           .eq('dashboard_id', config.id);
-
-        if (chartComponents) {
-          setSelectedComponents(chartComponents.map(comp => ({
-            ...comp,
-            cor: comp.cor || '#3B82F6'
-          })));
-        }
+        componentsData = data;
       } else if (config.tipo_visualizacao === 'list') {
-        const { data: listComponents } = await supabase
+        const { data } = await supabase
           .from('dashboard_list_components')
           .select(`
             *,
@@ -82,13 +86,18 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
               id,
               nome,
               codigo
+            ),
+            cliente:clientes (
+              id,
+              razao_social
             )
           `)
           .eq('dashboard_id', config.id);
+        componentsData = data;
+      }
 
-        if (listComponents) {
-          setSelectedComponents(listComponents);
-        }
+      if (componentsData) {
+        setSelectedComponents(componentsData);
       }
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
@@ -99,44 +108,42 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
   const handleSave = async () => {
     setLoading(true);
     try {
+      // Determinar tabela baseado no tipo de visualização
+      let table = '';
+      let componentsData;
+
       if (config.tipo_visualizacao === 'chart') {
-        await supabase
-          .from('dashboard_chart_components')
-          .delete()
-          .eq('dashboard_id', config.id);
-
-        if (selectedComponents.length > 0) {
-          const { error } = await supabase
-            .from('dashboard_chart_components')
-            .insert(
-              selectedComponents.map((comp, index) => ({
-                dashboard_id: config.id,
-                categoria_id: comp.categoria?.id || null,
-                indicador_id: comp.indicador?.id || null,
-                ordem: index + 1,
-                cor: comp.cor || '#3B82F6'
-              }))
-            );
-
-          if (error) throw error;
-        }
+        table = 'dashboard_chart_components';
+        componentsData = selectedComponents.map((comp, index) => ({
+          dashboard_id: config.id,
+          categoria_id: comp.categoria?.id || null,
+          indicador_id: comp.indicador?.id || null,
+          ordem: index + 1,
+          cor: comp.cor || '#3B82F6'
+        }));
       } else if (config.tipo_visualizacao === 'list') {
+        table = 'dashboard_list_components';
+        componentsData = selectedComponents.map((comp, index) => ({
+          dashboard_id: config.id,
+          categoria_id: comp.categoria?.id || null,
+          indicador_id: comp.indicador?.id || null,
+          cliente_id: comp.cliente?.id || null,
+          ordem: index + 1
+        }));
+      }
+
+      if (table) {
+        // Deletar componentes existentes
         await supabase
-          .from('dashboard_list_components')
+          .from(table)
           .delete()
           .eq('dashboard_id', config.id);
 
-        if (selectedComponents.length > 0) {
+        // Inserir novos componentes
+        if (componentsData && componentsData.length > 0) {
           const { error } = await supabase
-            .from('dashboard_list_components')
-            .insert(
-              selectedComponents.map((comp, index) => ({
-                dashboard_id: config.id,
-                categoria_id: comp.categoria?.id || null,
-                indicador_id: comp.indicador?.id || null,
-                ordem: index + 1
-              }))
-            );
+            .from(table)
+            .insert(componentsData);
 
           if (error) throw error;
         }
@@ -152,17 +159,7 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
     }
   };
 
-  const filteredCategorias = categorias.filter(cat => 
-    cat.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cat.codigo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredIndicadores = indicadores.filter(ind => 
-    ind.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ind.codigo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const addComponent = (tipo: 'categoria' | 'indicador', item: any) => {
+  const addComponent = (tipo: 'categoria' | 'indicador' | 'cliente', item: any) => {
     setSelectedComponents(prev => [...prev, {
       [tipo]: item,
       cor: config.tipo_visualizacao === 'chart' ? '#3B82F6' : undefined
@@ -180,6 +177,20 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
       i === index ? { ...comp, cor } : comp
     ));
   };
+
+  const filteredCategorias = categorias.filter(cat => 
+    cat.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cat.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredIndicadores = indicadores.filter(ind => 
+    ind.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ind.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredClientes = clientes.filter(cliente => 
+    cliente.razao_social.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <Modal
@@ -209,10 +220,11 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
 
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <h4 className="text-sm font-medium text-gray-400 mb-3">Categorias</h4>
+            <h4 className="text-sm font-medium text-gray-400 mb-3">Itens Disponíveis</h4>
             <div className="space-y-4">
+              {/* Categorias */}
               <div className="bg-gray-700 rounded-lg p-4">
-                <h5 className="text-sm font-medium text-gray-400 mb-3">Disponíveis</h5>
+                <h5 className="text-sm font-medium text-gray-400 mb-3">Categorias</h5>
                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
                   {filteredCategorias
                     .filter(cat => !selectedComponents.some(c => c.categoria?.id === cat.id))
@@ -232,43 +244,9 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
                 </div>
               </div>
 
+              {/* Indicadores */}
               <div className="bg-gray-700 rounded-lg p-4">
-                <h5 className="text-sm font-medium text-gray-400 mb-3">Selecionadas</h5>
-                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
-                  {selectedComponents
-                    .filter(comp => comp.categoria)
-                    .map((comp, index) => (
-                      <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-600 rounded-lg group">
-                        <button
-                          onClick={() => removeComponent(index)}
-                          className="p-1 text-gray-400 hover:text-white hover:bg-gray-500 rounded opacity-0 group-hover:opacity-100"
-                        >
-                          <ArrowLeft size={16} />
-                        </button>
-                        <div className="flex-1">
-                          <span className="text-white">{comp.categoria.nome}</span>
-                          <span className="text-gray-400 text-sm ml-2">({comp.categoria.codigo})</span>
-                        </div>
-                        {config.tipo_visualizacao === 'chart' && (
-                          <input
-                            type="color"
-                            value={comp.cor}
-                            onChange={(e) => updateColor(index, e.target.value)}
-                            className="w-8 h-8 rounded cursor-pointer bg-transparent"
-                          />
-                        )}
-                      </div>
-                    ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-medium text-gray-400 mb-3">Indicadores</h4>
-            <div className="space-y-4">
-              <div className="bg-gray-700 rounded-lg p-4">
-                <h5 className="text-sm font-medium text-gray-400 mb-3">Disponíveis</h5>
+                <h5 className="text-sm font-medium text-gray-400 mb-3">Indicadores</h5>
                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
                   {filteredIndicadores
                     .filter(ind => !selectedComponents.some(c => c.indicador?.id === ind.id))
@@ -288,34 +266,72 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
                 </div>
               </div>
 
-              <div className="bg-gray-700 rounded-lg p-4">
-                <h5 className="text-sm font-medium text-gray-400 mb-3">Selecionados</h5>
-                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
-                  {selectedComponents
-                    .filter(comp => comp.indicador)
-                    .map((comp, index) => (
-                      <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-600 rounded-lg group">
+              {/* Clientes (apenas para listas) */}
+              {config.tipo_visualizacao === 'list' && (
+                <div className="bg-gray-700 rounded-lg p-4">
+                  <h5 className="text-sm font-medium text-gray-400 mb-3">Clientes</h5>
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                    {filteredClientes
+                      .filter(cliente => !selectedComponents.some(c => c.cliente?.id === cliente.id))
+                      .map(cliente => (
                         <button
-                          onClick={() => removeComponent(index)}
-                          className="p-1 text-gray-400 hover:text-white hover:bg-gray-500 rounded opacity-0 group-hover:opacity-100"
+                          key={cliente.id}
+                          onClick={() => addComponent('cliente', cliente)}
+                          className="w-full text-left p-2 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between group"
                         >
-                          <ArrowLeft size={16} />
+                          <span className="text-white">{cliente.razao_social}</span>
+                          <ArrowRight size={16} className="text-gray-400 opacity-0 group-hover:opacity-100" />
                         </button>
-                        <div className="flex-1">
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-medium text-gray-400 mb-3">Itens Selecionados</h4>
+            <div className="bg-gray-700 rounded-lg p-4">
+              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                {selectedComponents.map((comp, index) => (
+                  <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-600 rounded-lg group">
+                    <button
+                      onClick={() => removeComponent(index)}
+                      className="p-1 text-gray-400 hover:text-white hover:bg-gray-500 rounded opacity-0 group-hover:opacity-100"
+                    >
+                      <ArrowLeft size={16} />
+                    </button>
+                    <div className="flex-1">
+                      {comp.categoria ? (
+                        <div>
+                          <span className="text-white">{comp.categoria.nome}</span>
+                          <span className="text-gray-400 text-sm ml-2">({comp.categoria.codigo})</span>
+                        </div>
+                      ) : comp.indicador ? (
+                        <div>
                           <span className="text-white">{comp.indicador.nome}</span>
                           <span className="text-gray-400 text-sm ml-2">({comp.indicador.codigo})</span>
                         </div>
-                        {config.tipo_visualizacao === 'chart' && (
-                          <input
-                            type="color"
-                            value={comp.cor}
-                            onChange={(e) => updateColor(index, e.target.value)}
-                            className="w-8 h-8 rounded cursor-pointer bg-transparent"
-                          />
-                        )}
-                      </div>
-                    ))}
-                </div>
+                      ) : comp.cliente ? (
+                        <span className="text-white">{comp.cliente.razao_social}</span>
+                      ) : null}
+                    </div>
+                    {config.tipo_visualizacao === 'chart' && (
+                      <input
+                        type="color"
+                        value={comp.cor}
+                        onChange={(e) => updateColor(index, e.target.value)}
+                        className="w-8 h-8 rounded cursor-pointer bg-transparent"
+                      />
+                    )}
+                  </div>
+                ))}
+
+                {selectedComponents.length === 0 && (
+                  <p className="text-gray-400 text-center py-4">
+                    Nenhum item selecionado
+                  </p>
+                )}
               </div>
             </div>
           </div>

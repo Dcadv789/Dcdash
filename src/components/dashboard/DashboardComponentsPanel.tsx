@@ -32,8 +32,28 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
   };
 
   const renderComponent = (comp: any) => {
-    const item = comp.categoria || comp.indicador;
-    if (!item) return null;
+    if (!comp) return null;
+
+    let content;
+    if (comp.categoria) {
+      content = (
+        <>
+          <span className="text-white">{comp.categoria.nome}</span>
+          <span className="text-gray-400 text-sm ml-2">({comp.categoria.codigo})</span>
+        </>
+      );
+    } else if (comp.indicador) {
+      content = (
+        <>
+          <span className="text-white">{comp.indicador.nome}</span>
+          <span className="text-gray-400 text-sm ml-2">({comp.indicador.codigo})</span>
+        </>
+      );
+    } else if (comp.cliente) {
+      content = <span className="text-white">{comp.cliente.razao_social}</span>;
+    } else {
+      return null;
+    }
 
     return (
       <div key={comp.id} className="bg-gray-700 rounded-lg p-4">
@@ -44,12 +64,7 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
               style={{ backgroundColor: comp.cor }}
             />
           )}
-          <div>
-            <span className="text-white">{item.nome}</span>
-            <span className="text-gray-400 text-sm ml-2">
-              ({item.codigo})
-            </span>
-          </div>
+          <div>{content}</div>
         </div>
       </div>
     );
