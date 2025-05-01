@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calculator } from 'lucide-react';
+import { Calculator, X } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { supabase } from '../../lib/supabase';
 
@@ -104,12 +104,41 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
     }
   };
 
+  const handleRemoveComponent = async (componentId: string) => {
+    if (!config) return;
+
+    try {
+      let table = '';
+      switch (config.tipo_visualizacao) {
+        case 'card':
+          table = 'dashboard_card_components';
+          break;
+        case 'chart':
+          table = 'dashboard_chart_components';
+          break;
+        case 'list':
+          table = 'dashboard_list_components';
+          break;
+      }
+
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq('id', componentId);
+
+      if (error) throw error;
+
+      // Atualizar a lista de componentes
+      setComponentes(prev => prev.filter(comp => comp.id !== componentId));
+    } catch (err) {
+      console.error('Erro ao remover componente:', err);
+    }
+  };
+
   if (!config) {
     return (
-      <div className="bg-gray-800 rounded-xl p-6">
-        <p className="text-gray-400 text-center">
-          Selecione um item para visualizar seus componentes
-        </p>
+      <div className="text-gray-400 text-center py-8">
+        Selecione uma configuração para visualizar seus componentes
       </div>
     );
   }
@@ -140,14 +169,23 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
 
     return (
       <div key={comp.id} className="bg-gray-700 rounded-lg p-4">
-        <div className="flex items-center gap-3">
-          {(config.tipo_visualizacao === 'chart' || config.tipo_visualizacao === 'card') && (
-            <div
-              className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: comp.cor }}
-            />
-          )}
-          <div>{content}</div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {(config.tipo_visualizacao === 'chart' || config.tipo_visualizacao === 'card') && (
+              <div
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: comp.cor }}
+              />
+            )}
+            <div>{content}</div>
+          </div>
+          <button
+            onClick={() => handleRemoveComponent(comp.id)}
+            className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded-lg transition-colors"
+            title="Remover"
+          >
+            <X size={16} />
+          </button>
         </div>
       </div>
     );
@@ -162,7 +200,7 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
           icon={Calculator}
           onClick={onManageComponents}
         >
-          Gerenciar
+          Adicionar
         </Button>
       </div>
 
