@@ -44,9 +44,19 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
               />
               <div>
                 {comp.categoria ? (
-                  <span className="text-white">{comp.categoria.nome}</span>
+                  <div>
+                    <span className="text-white">{comp.categoria.nome}</span>
+                    <span className="text-gray-400 text-sm ml-2">
+                      ({comp.categoria.codigo})
+                    </span>
+                  </div>
                 ) : comp.indicador ? (
-                  <span className="text-white">{comp.indicador.nome}</span>
+                  <div>
+                    <span className="text-white">{comp.indicador.nome}</span>
+                    <span className="text-gray-400 text-sm ml-2">
+                      ({comp.indicador.codigo})
+                    </span>
+                  </div>
                 ) : null}
               </div>
             </div>
