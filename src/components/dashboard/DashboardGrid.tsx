@@ -239,7 +239,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
     </div>;
   }
 
-  // Organizar os cards por pos
+  // Organizar os cards por posição
   const topCards = data.filter(item => item.posicao >= 1 && item.posicao <= 4);
   const middleCard = data.find(item => item.posicao === 5);
   const bottomCards = data.filter(item => item.posicao >= 6 && item.posicao <= 7);
