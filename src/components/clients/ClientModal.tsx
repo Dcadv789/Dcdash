@@ -4,6 +4,7 @@ import { Cliente } from '../../types/database';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../shared/Button';
 import { Modal } from '../shared/Modal';
+import InputMask from 'react-input-mask';
 
 interface ClientModalProps {
   client?: Cliente;
@@ -12,11 +13,11 @@ interface ClientModalProps {
   onSave: () => void;
 }
 
-const ClientModal: React.FC<ClientModalProps> = ({ 
-  client, 
+const ClientModal: React.FC<ClientModalProps> = ({
+  client,
   selectedEmpresa,
-  onClose, 
-  onSave 
+  onClose,
+  onSave,
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,27 +33,29 @@ const ClientModal: React.FC<ClientModalProps> = ({
     setError(null);
 
     try {
+      if (!selectedEmpresa) {
+        throw new Error('Selecione uma empresa');
+      }
+
+      const data = {
+        razao_social: formData.razao_social,
+        nome_fantasia: formData.nome_fantasia || null,
+        cnpj: formData.cnpj.replace(/\D/g, '') || null,
+        empresa_id: selectedEmpresa,
+        ativo: true,
+      };
+
       if (client) {
         const { error } = await supabase
           .from('clientes')
-          .update({
-            razao_social: formData.razao_social,
-            nome_fantasia: formData.nome_fantasia || null,
-            cnpj: formData.cnpj || null,
-          })
+          .update(data)
           .eq('id', client.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('clientes')
-          .insert([{
-            razao_social: formData.razao_social,
-            nome_fantasia: formData.nome_fantasia || null,
-            cnpj: formData.cnpj || null,
-            empresa_id: selectedEmpresa,
-            ativo: true,
-          }]);
+          .insert([data]);
 
         if (error) throw error;
       }
@@ -78,32 +81,62 @@ const ClientModal: React.FC<ClientModalProps> = ({
             {error}
           </div>
         )}
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">
-              Razão Social
-            </label>
-            <input
-              type="text"
-              value={formData.razao_social}
-              onChange={(e) => setFormData(prev => ({ ...prev, razao_social: e.target.value }))}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">
-              Nome Fantasia
-            </label>
-            <input
-              type="text"
-              value={formData.nome_fantasia}
-              onChange={(e) => setFormData(prev => ({ ...prev, nome_fantasia: e.target.value }))}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            Razão Social *
+          </label>
+          <input
+            type="text"
+            value={formData.razao_social}
+            onChange={(e) => setFormData(prev => ({ ...prev, razao_social: e.target.value }))}
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            Nome Fantasia
+          </label>
+          <input
+            type="text"
+            value={formData.nome_fantasia}
+            onChange={(e) => setFormData(prev => ({ ...prev, nome_fantasia: e.target.value }))}
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            CNPJ
+          </label>
+          <InputMask
+            mask="99.999.999/9999-99"
+            value={formData.cnpj}
+            onChange={(e) => setFormData(prev => ({ ...prev, cnpj: e.target.value }))}
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="00.000.000/0000-00"
+          />
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4">
+          <Button
+            variant="secondary"
+            onClick={onClose}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            loading={loading}
+          >
+            {loading ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
+export default ClientModal;
