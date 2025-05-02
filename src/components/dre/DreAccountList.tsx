@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, Calculator, Pencil, Power, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Eye, Pencil, Trash2, Power, Building2, Calculator, ChevronDown, ChevronRight } from 'lucide-react';
 import { DreConfiguracao } from '../../types/database';
 
 interface ContaHierarquica extends DreConfiguracao {
@@ -39,9 +39,9 @@ const DreAccountList: React.FC<DreAccountListProps> = ({
     return (
       <div key={conta.id} className="space-y-2">
         <div
-          className={`bg-gray-700 rounded-lg transition-colors ${
+          className={`bg-black border-b border-gray-800 transition-colors ${
             selectedConta?.id === conta.id ? 'ring-2 ring-blue-500' : ''
-          } hover:bg-gray-600`}
+          } hover:bg-gray-900`}
         >
           <div className="flex items-center p-4" style={{ paddingLeft: `${conta.nivel * 2 + 1}rem` }}>
             <div
@@ -54,7 +54,7 @@ const DreAccountList: React.FC<DreAccountListProps> = ({
                     e.stopPropagation();
                     onToggleExpanded(conta.id);
                   }}
-                  className="p-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+                  className="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-colors"
                 >
                   {isExpanded ? (
                     <ChevronDown size={18} />
@@ -74,21 +74,21 @@ const DreAccountList: React.FC<DreAccountListProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onManageCompanies(conta)}
-                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg"
                 title="Gerenciar Empresas"
               >
                 <Building2 size={18} />
               </button>
               <button
                 onClick={() => onManageComponents(conta)}
-                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg"
                 title="Gerenciar Componentes"
               >
                 <Calculator size={18} />
               </button>
               <button
                 onClick={() => onEdit(conta)}
-                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg"
                 title="Editar"
               >
                 <Pencil size={18} />
@@ -99,14 +99,14 @@ const DreAccountList: React.FC<DreAccountListProps> = ({
                   conta.ativo
                     ? 'text-green-500 hover:text-green-400'
                     : 'text-red-500 hover:text-red-400'
-                } hover:bg-gray-700`}
+                } hover:bg-gray-800`}
                 title={conta.ativo ? 'Desativar' : 'Ativar'}
               >
                 <Power size={18} />
               </button>
               <button
                 onClick={() => onDelete(conta)}
-                className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded-lg"
+                className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-800 rounded-lg"
                 title="Excluir"
               >
                 <Trash2 size={18} />

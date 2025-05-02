@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Calculator, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { DreConfiguracao, Empresa } from '../types/database';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { supabase } from '../lib/supabase';
@@ -9,7 +9,7 @@ import { EmptyState } from '../components/shared/EmptyState';
 import { Button } from '../components/shared/Button';
 import DreAccountList from '../components/dre/DreAccountList';
 import DreAccountDetails from '../components/dre/DreAccountDetails';
-import DreFilters from '../components/dre/DreFilters';
+import DreConfigFilters from '../components/dre/DreConfigFilters';
 import DreAccountModal from '../components/dre/DreAccountModal';
 import DreComponentsModal from '../components/dre/DreComponentsModal';
 import DreCompaniesModal from '../components/dre/DreCompaniesModal';
@@ -31,10 +31,6 @@ interface ContaComponente {
     nome: string;
     codigo: string;
   } | null;
-  conta_componente?: {
-    id: string;
-    nome: string;
-  } | null;
   simbolo: '+' | '-' | '=';
 }
 
@@ -47,8 +43,10 @@ const DreConfigPage: React.FC = () => {
   const [componentes, setComponentes] = useState<ContaComponente[]>([]);
   const [loadingComponentes, setLoadingComponentes] = useState(false);
   const [expandedContas, setExpandedContas] = useState<Set<string>>(new Set());
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmpresa, setSelectedEmpresa] = useState<string>('');
+  const [selectedType, setSelectedType] = useState<'todos' | '+' | '-' | '='>('todos');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [filteredContas, setFilteredContas] = useState<DreConfiguracao[]>([]);
 
   const { data: empresas } = useSupabaseQuery<Empresa>({
@@ -75,13 +73,17 @@ const DreConfigPage: React.FC = () => {
           )
         `);
 
-      if (searchTerm) {
-        query = query.ilike('nome', `%${searchTerm}%`);
+      if (selectedType !== 'todos') {
+        query = query.eq('simbolo', selectedType);
+      }
+
+      if (searchQuery) {
+        query = query.ilike('nome', `%${searchQuery}%`);
       }
 
       return query.order('ordem');
     },
-    dependencies: [searchTerm],
+    dependencies: [selectedType, searchQuery],
   });
 
   useEffect(() => {
@@ -104,6 +106,13 @@ const DreConfigPage: React.FC = () => {
     }
   }, [selectedConta]);
 
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setSearchQuery(searchTerm);
+      e.currentTarget.blur();
+    }
+  };
+
   const fetchComponentes = async () => {
     if (!selectedConta) return;
 
@@ -123,10 +132,6 @@ const DreConfigPage: React.FC = () => {
             id,
             nome,
             codigo
-          ),
-          conta_componente:dre_configuracao!dre_conta_componentes_conta_componente_id_fkey (
-            id,
-            nome
           )
         `)
         .eq('conta_id', selectedConta.id);
@@ -137,6 +142,70 @@ const DreConfigPage: React.FC = () => {
       console.error('Erro ao carregar componentes:', err);
     } finally {
       setLoadingComponentes(false);
+    }
+  };
+
+  const handleSave = async (formData: Partial<DreConfiguracao>) => {
+    try {
+      setLoading(true);
+      if (selectedConta) {
+        const { error } = await supabase
+          .from('dre_configuracao')
+          .update(formData)
+          .eq('id', selectedConta.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('dre_configuracao')
+          .insert([{...formData, ativo: true}]);
+
+        if (error) throw error;
+      }
+
+      refetch();
+      setIsModalOpen(false);
+      setSelectedConta(undefined);
+    } catch (err) {
+      console.error('Erro ao salvar conta:', err);
+      alert('Não foi possível salvar a conta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (conta: DreConfiguracao) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta conta?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('dre_configuracao')
+        .delete()
+        .eq('id', conta.id);
+
+      if (error) throw error;
+      refetch();
+      if (selectedConta?.id === conta.id) {
+        setSelectedConta(undefined);
+      }
+    } catch (err) {
+      console.error('Erro ao excluir conta:', err);
+      alert('Não foi possível excluir a conta');
+    }
+  };
+
+  const handleToggleActive = async (conta: DreConfiguracao) => {
+    try {
+      const { error } = await supabase
+        .from('dre_configuracao')
+        .update({ ativo: !conta.ativo })
+        .eq('id', conta.id);
+
+      if (error) throw error;
+      refetch();
+    } catch (err) {
+      console.error('Erro ao atualizar conta:', err);
+      alert('Não foi possível atualizar a conta');
     }
   };
 
@@ -194,70 +263,6 @@ const DreConfigPage: React.FC = () => {
     });
   };
 
-  const handleSave = async (formData: Partial<DreConfiguracao>) => {
-    try {
-      setLoading(true);
-      if (selectedConta) {
-        const { error } = await supabase
-          .from('dre_configuracao')
-          .update(formData)
-          .eq('id', selectedConta.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('dre_configuracao')
-          .insert([formData]);
-
-        if (error) throw error;
-      }
-
-      refetch();
-      setIsModalOpen(false);
-      setSelectedConta(undefined);
-    } catch (err) {
-      console.error('Erro ao salvar conta:', err);
-      alert('Não foi possível salvar a conta');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (conta: DreConfiguracao) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta conta?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('dre_configuracao')
-        .delete()
-        .eq('id', conta.id);
-
-      if (error) throw error;
-      refetch();
-      if (selectedConta?.id === conta.id) {
-        setSelectedConta(undefined);
-      }
-    } catch (err) {
-      console.error('Erro ao excluir conta:', err);
-      alert('Não foi possível excluir a conta');
-    }
-  };
-
-  const handleToggleActive = async (conta: DreConfiguracao) => {
-    try {
-      const { error } = await supabase
-        .from('dre_configuracao')
-        .update({ ativo: !conta.ativo })
-        .eq('id', conta.id);
-
-      if (error) throw error;
-      refetch();
-    } catch (err) {
-      console.error('Erro ao atualizar conta:', err);
-      alert('Não foi possível atualizar a conta');
-    }
-  };
-
   if (loadingContas) return <LoadingSpinner />;
   if (error) return <ErrorAlert message={error} />;
 
@@ -280,15 +285,18 @@ const DreConfigPage: React.FC = () => {
           </Button>
         </div>
 
-        <DreFilters
-          searchTerm={searchTerm}
+        <DreConfigFilters
           selectedEmpresa={selectedEmpresa}
+          selectedType={selectedType}
+          searchTerm={searchTerm}
           empresas={empresas}
-          onSearchChange={setSearchTerm}
           onEmpresaChange={setSelectedEmpresa}
+          onTypeChange={setSelectedType}
+          onSearchChange={setSearchTerm}
+          onKeyDown={handleSearch}
         />
 
-        <div className="flex-1 bg-gray-800 rounded-xl p-6 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-hidden flex flex-col">
           <div className="overflow-y-auto flex-1">
             {filteredContas.length === 0 ? (
               <EmptyState message="Nenhuma conta configurada." />
@@ -319,30 +327,13 @@ const DreConfigPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-[3] bg-gray-800 rounded-xl p-6 flex flex-col">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-medium text-white">
-            {selectedConta ? 'Componentes' : 'Selecione uma conta'}
-          </h3>
-          {selectedConta && (
-            <Button
-              variant="secondary"
-              icon={Calculator}
-              onClick={() => setIsComponentsModalOpen(true)}
-            >
-              Gerenciar
-            </Button>
-          )}
-        </div>
-
-        <div className="flex-1 overflow-auto">
-          <DreAccountDetails
-            selectedConta={selectedConta}
-            componentes={componentes}
-            loadingComponentes={loadingComponentes}
-            onManageComponents={() => setIsComponentsModalOpen(true)}
-          />
-        </div>
+      <div className="flex-[3] bg-gray-800 rounded-xl p-6 flex flex-col mt-[12rem]">
+        <DreAccountDetails
+          selectedConta={selectedConta}
+          componentes={componentes}
+          loadingComponentes={loadingComponentes}
+          onManageComponents={() => setIsComponentsModalOpen(true)}
+        />
       </div>
 
       {isModalOpen && (
@@ -362,7 +353,6 @@ const DreConfigPage: React.FC = () => {
         <DreCompaniesModal
           conta={selectedConta}
           onClose={() => {
-            setSelectedConta(undefined);
             setIsCompaniesModalOpen(false);
           }}
           onSave={() => {

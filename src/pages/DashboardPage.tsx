@@ -30,9 +30,12 @@ const DashboardPage: React.FC = () => {
   if (error) return <ErrorAlert message={error} />;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-[calc(100vh-12rem)] flex flex-col">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-white">Dashboard</h2>
+        <div>
+          <h2 className="text-2xl font-semibold text-white">Dashboard</h2>
+          <p className="text-gray-400 mt-1">Visão geral dos principais indicadores</p>
+        </div>
         <DashboardFilters
           selectedEmpresa={selectedEmpresa}
           selectedYear={selectedYear}

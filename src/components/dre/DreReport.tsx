@@ -93,6 +93,7 @@ const DreReport: React.FC<DreReportProps> = ({ contas, meses, showVariation = fa
 
     const hasChildren = conta.contas_filhas && conta.contas_filhas.length > 0;
     const isExpanded = expandedContas.has(conta.id);
+    const is13Months = meses.length === 13;
 
     return (
       <React.Fragment key={conta.id}>
@@ -120,13 +121,13 @@ const DreReport: React.FC<DreReportProps> = ({ contas, meses, showVariation = fa
 
             return (
               <React.Fragment key={`${ano}-${mes}`}>
-                <td className="p-2 text-right whitespace-nowrap">
+                <td className="p-2 text-right whitespace-nowrap" style={{ minWidth: is13Months ? '80px' : '120px' }}>
                   <span className={`font-mono ${valor >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {formatValue(valor)}
                   </span>
                 </td>
                 {showVariation && (
-                  <td className="p-2 text-right whitespace-nowrap">
+                  <td className="p-2 text-right whitespace-nowrap" style={{ minWidth: is13Months ? '60px' : '80px' }}>
                     <span className={`font-mono ${variacao >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       {formatVariation(variacao)}%
                     </span>
@@ -135,7 +136,7 @@ const DreReport: React.FC<DreReportProps> = ({ contas, meses, showVariation = fa
               </React.Fragment>
             );
           })}
-          <td className="p-2 text-right whitespace-nowrap">
+          <td className="p-2 text-right whitespace-nowrap" style={{ minWidth: is13Months ? '80px' : '120px' }}>
             <span className={`font-mono font-medium ${calcularTotal12Meses(conta) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {formatValue(calcularTotal12Meses(conta))}
             </span>
@@ -157,18 +158,18 @@ const DreReport: React.FC<DreReportProps> = ({ contas, meses, showVariation = fa
               <th className="text-left p-2 pl-8 sticky left-0 z-10 bg-black whitespace-nowrap text-gray-400">Conta</th>
               {meses.map(({ mes, ano }) => (
                 <React.Fragment key={`${ano}-${mes}`}>
-                  <th className="text-right p-2 text-gray-400 whitespace-nowrap">
+                  <th className="text-right p-2 text-gray-400 whitespace-nowrap" style={{ minWidth: meses.length === 13 ? '80px' : '120px' }}>
                     {getMonthName(mes)}/{String(ano).slice(2)}
                   </th>
                   {showVariation && (
-                    <th className="text-right p-2 text-gray-400 whitespace-nowrap">
+                    <th className="text-right p-2 text-gray-400 whitespace-nowrap" style={{ minWidth: meses.length === 13 ? '60px' : '80px' }}>
                       Var %
                     </th>
                   )}
                 </React.Fragment>
               ))}
-              <th className="text-right p-2 text-gray-400 whitespace-nowrap">
-                Total 12M
+              <th className="text-right p-2 text-gray-400 whitespace-nowrap" style={{ minWidth: meses.length === 13 ? '80px' : '120px' }}>
+                {meses.length === 13 ? 'Total 12M' : 'Total 6M'}
               </th>
             </tr>
           </thead>

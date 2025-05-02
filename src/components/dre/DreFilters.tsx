@@ -8,10 +8,12 @@ interface DreFiltersProps {
   selectedMonth: number;
   empresas: Empresa[];
   showVariation: boolean;
+  periodType: '6M' | '13M';
   onEmpresaChange: (empresaId: string) => void;
   onYearChange: (year: number) => void;
   onMonthChange: (month: number) => void;
   onToggleVariation: () => void;
+  onPeriodTypeChange: (type: '6M' | '13M') => void;
 }
 
 const DreFilters: React.FC<DreFiltersProps> = ({
@@ -20,10 +22,12 @@ const DreFilters: React.FC<DreFiltersProps> = ({
   selectedMonth,
   empresas = [],
   showVariation,
+  periodType,
   onEmpresaChange,
   onYearChange,
   onMonthChange,
   onToggleVariation,
+  onPeriodTypeChange,
 }) => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -101,6 +105,21 @@ const DreFilters: React.FC<DreFiltersProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant={periodType === '6M' ? 'primary' : 'secondary'}
+            onClick={() => onPeriodTypeChange('6M')}
+          >
+            Últimos 6 meses
+          </Button>
+          <Button
+            variant={periodType === '13M' ? 'primary' : 'secondary'}
+            onClick={() => onPeriodTypeChange('13M')}
+          >
+            Últimos 13 meses
+          </Button>
         </div>
 
         <div className="ml-auto">

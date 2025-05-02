@@ -27,7 +27,7 @@ interface DreAccountDetailsProps {
 
 const DreAccountDetails: React.FC<DreAccountDetailsProps> = ({
   selectedConta,
-  componentes,
+  componentes = [],
   loadingComponentes,
   onManageComponents,
 }) => {
@@ -41,6 +41,21 @@ const DreAccountDetails: React.FC<DreAccountDetailsProps> = ({
 
   return (
     <div className="space-y-4 h-full flex flex-col">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-medium text-white">
+          {selectedConta ? 'Componentes' : 'Selecione uma conta'}
+        </h3>
+        {selectedConta && (
+          <Button
+            variant="secondary"
+            icon={Calculator}
+            onClick={onManageComponents}
+          >
+            Gerenciar
+          </Button>
+        )}
+      </div>
+      
       <div className="bg-gray-700/50 rounded-lg p-4">
         <h4 className="text-sm font-medium text-gray-300 mb-2">Detalhes da Conta</h4>
         <div className="space-y-2 text-sm">
@@ -70,7 +85,7 @@ const DreAccountDetails: React.FC<DreAccountDetailsProps> = ({
           </div>
         ) : (
           <div className="flex-1 min-h-0 overflow-y-auto pr-2">
-            {componentes.length > 0 ? (
+            {Array.isArray(componentes) && componentes.length > 0 ? (
               <div className="space-y-2">
                 {componentes.map((componente) => (
                   <div key={componente.id} className="bg-gray-700 rounded-lg p-3">

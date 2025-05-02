@@ -33,6 +33,7 @@ const DreAccountModal: React.FC<DreAccountModalProps> = ({
             simbolo: formData.get('simbolo') as '+' | '-' | '=',
             conta_pai_id: formData.get('conta_pai_id') as string || null,
             visivel: formData.get('visivel') === 'true',
+            ativo: true
           });
         }}
         className="space-y-4"
