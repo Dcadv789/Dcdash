@@ -104,6 +104,10 @@ const ConfigAnalysePage: React.FC = () => {
         </div>
         <Button
           onClick={() => {
+            if (!selectedEmpresa) {
+              alert('Selecione uma empresa primeiro');
+              return;
+            }
             setSelectedConfig(null);
             setIsModalOpen(true);
           }}
