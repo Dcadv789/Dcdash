@@ -1,53 +1,30 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { Cliente, Empresa } from '../../types/database';
+import { Cliente } from '../../types/database';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../shared/Button';
 import { Modal } from '../shared/Modal';
-import { useAuth } from '../../contexts/AuthContext';
 
 interface ClientModalProps {
   client?: Cliente;
+  selectedEmpresa: string;
   onClose: () => void;
   onSave: () => void;
 }
 
-const ClientModal: React.FC<ClientModalProps> = ({ client, onClose, onSave }) => {
-  const { user } = useAuth();
+const ClientModal: React.FC<ClientModalProps> = ({ 
+  client, 
+  selectedEmpresa,
+  onClose, 
+  onSave 
+}) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [formData, setFormData] = useState({
     razao_social: client?.razao_social || '',
     nome_fantasia: client?.nome_fantasia || '',
     cnpj: client?.cnpj || '',
-    empresa_id: client?.empresa_id || '',
   });
-
-  // Carregar empresas se o usuário for master
-  React.useEffect(() => {
-    const fetchEmpresas = async () => {
-      const { data: userData } = await supabase
-        .from('usuarios')
-        .select('permissao, empresa_id')
-        .eq('auth_id', user?.id)
-        .single();
-
-      if (userData?.permissao === 'master') {
-        const { data } = await supabase
-          .from('empresas')
-          .select('*')
-          .eq('ativa', true)
-          .order('razao_social');
-        
-        if (data) setEmpresas(data);
-      } else if (userData?.empresa_id) {
-        setFormData(prev => ({ ...prev, empresa_id: userData.empresa_id }));
-      }
-    };
-
-    fetchEmpresas();
-  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +50,7 @@ const ClientModal: React.FC<ClientModalProps> = ({ client, onClose, onSave }) =>
             razao_social: formData.razao_social,
             nome_fantasia: formData.nome_fantasia || null,
             cnpj: formData.cnpj || null,
-            empresa_id: formData.empresa_id,
+            empresa_id: selectedEmpresa,
             ativo: true,
           }]);
 
@@ -130,55 +107,3 @@ const ClientModal: React.FC<ClientModalProps> = ({ client, onClose, onSave }) =>
 
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">
-              CNPJ
-            </label>
-            <input
-              type="text"
-              value={formData.cnpj}
-              onChange={(e) => setFormData(prev => ({ ...prev, cnpj: e.target.value }))}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {empresas.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">
-                Empresa
-              </label>
-              <select
-                value={formData.empresa_id}
-                onChange={(e) => setFormData(prev => ({ ...prev, empresa_id: e.target.value }))}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Selecione uma empresa</option>
-                {empresas.map(empresa => (
-                  <option key={empresa.id} value={empresa.id}>
-                    {empresa.razao_social}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-        
-        <div className="flex justify-end gap-3 pt-4">
-          <Button
-            variant="secondary"
-            onClick={onClose}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            loading={loading}
-          >
-            {loading ? 'Salvando...' : 'Salvar'}
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  );
-};
-
-export default ClientModal;

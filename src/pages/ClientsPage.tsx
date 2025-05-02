@@ -74,6 +74,10 @@ const ClientsPage: React.FC = () => {
         </div>
         <Button
           onClick={() => {
+            if (!selectedEmpresa) {
+              alert('Selecione uma empresa primeiro');
+              return;
+            }
             setSelectedClient(null);
             setIsModalOpen(true);
           }}
@@ -132,6 +136,7 @@ const ClientsPage: React.FC = () => {
       {isModalOpen && (
         <ClientModal
           client={selectedClient || undefined}
+          selectedEmpresa={selectedEmpresa}
           onClose={() => {
             setSelectedClient(null);
             setIsModalOpen(false);
