@@ -453,6 +453,7 @@ const LancamentoModal: React.FC<LancamentoModalProps> = ({
                 <option value="">Selecione um cliente</option>
                 {clientes
                   .filter(cliente => !formData.empresa_id || cliente.empresa_id === formData.empresa_id)
+                  .sort((a, b) => a.razao_social.localeCompare(b.razao_social))
                   .map(cliente => (
                     <option key={cliente.id} value={cliente.id}>
                       {cliente.razao_social}

@@ -107,6 +107,7 @@ const LancamentoUploadModal: React.FC<LancamentoUploadModalProps> = ({ onClose }
                     <ul className="list-disc list-inside text-gray-400 space-y-1">
                       <li>Código da Categoria</li>
                       <li>Código do Indicador</li>
+                      <li>Código do Cliente</li>
                       <li>Descrição</li>
                     </ul>
                   </div>
@@ -117,8 +118,8 @@ const LancamentoUploadModal: React.FC<LancamentoUploadModalProps> = ({ onClose }
             <div className="flex items-start gap-3 text-sm text-yellow-300">
               <AlertCircle className="shrink-0 mt-0.5" size={16} />
               <p>
-                Importante: Você deve preencher apenas Categoria OU Indicador, nunca os dois ao mesmo tempo.
-                Se ambos forem preenchidos, o lançamento será rejeitado.
+                Importante: Você deve preencher apenas UM dos seguintes: Categoria, Indicador OU Cliente.
+                Se mais de um for preenchido, o lançamento será rejeitado.
               </p>
             </div>
           </div>

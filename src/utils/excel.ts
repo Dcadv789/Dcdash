@@ -7,10 +7,11 @@ export function createExampleWorkbook() {
 
   // Dados da primeira aba (Modelo)
   const modelData = [
-    ['Mês *', 'Ano *', 'Tipo *', 'Valor *', 'Código da Categoria', 'Código do Indicador', 'CNPJ da Empresa *', 'Descrição'],
-    [3, 2024, 'receita', 1500.00, 'R0001', '', '12345678000190', 'Venda de serviços'],
-    [3, 2024, 'despesa', 350.00, 'D0001', '', '12345678000190', 'Material de escritório'],
-    [3, 2024, 'receita', 2000.00, '', 'I0001', '98765432000121', 'Consultoria mensal']
+    ['Mês *', 'Ano *', 'Tipo *', 'Valor *', 'Código da Categoria', 'Código do Indicador', 'Código do Cliente', 'CNPJ da Empresa *', 'Descrição'],
+    [3, 2024, 'receita', 1500.00, 'R0001', '', '', '12345678000190', 'Venda de serviços'],
+    [3, 2024, 'despesa', 350.00, 'D0001', '', '', '12345678000190', 'Material de escritório'],
+    [3, 2024, 'receita', 2000.00, '', 'I0001', '', '98765432000121', 'Consultoria mensal'],
+    [3, 2024, 'receita', 3000.00, '', '', 'C0001', '12345678000190', 'Venda para cliente específico']
   ];
 
   // Dados da segunda aba (Instruções)
@@ -28,10 +29,11 @@ export function createExampleWorkbook() {
     ['Campos Opcionais'],
     ['- Código da Categoria: Formato R0001 para receitas, D0001 para despesas'],
     ['- Código do Indicador: Formato I0001'],
+    ['- Código do Cliente: Formato C0001'],
     ['- Descrição: Texto livre'],
     [''],
     ['Observações Importantes'],
-    ['1. Preencher apenas Categoria OU Indicador, nunca os dois'],
+    ['1. Preencher apenas UM dos seguintes: Categoria, Indicador OU Cliente, nunca mais de um'],
     ['2. Valores devem ser positivos'],
     ['3. CNPJ deve existir no sistema'],
     ['4. O CNPJ deve ser informado sem formatação (apenas números)'],
@@ -55,6 +57,7 @@ export function createExampleWorkbook() {
     { wch: 12 }, // Valor
     { wch: 20 }, // Código Categoria
     { wch: 20 }, // Código Indicador
+    { wch: 20 }, // Código Cliente
     { wch: 20 }, // CNPJ
     { wch: 40 }  // Descrição
   ];
@@ -74,6 +77,7 @@ interface UploadRow {
   valor: number;
   categoria_codigo?: string;
   indicador_codigo?: string;
+  cliente_codigo?: string;
   cnpj: string;
   descricao?: string;
 }
@@ -90,14 +94,14 @@ export async function processExcelFile(file: File): Promise<ProcessResult> {
     const workbook = XLSX.read(data);
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows: UploadRow[] = XLSX.utils.sheet_to_json(worksheet, { 
-      header: ['mes', 'ano', 'tipo', 'valor', 'categoria_codigo', 'indicador_codigo', 'cnpj', 'descricao'], 
+      header: ['mes', 'ano', 'tipo', 'valor', 'categoria_codigo', 'indicador_codigo', 'cliente_codigo', 'cnpj', 'descricao'], 
       range: 1 
     });
 
     const errors: string[] = [];
     const lancamentos = [];
 
-    // Buscar todas as empresas, categorias e indicadores uma única vez
+    // Buscar todas as empresas, categorias, indicadores e clientes uma única vez
     const { data: empresas } = await supabase
       .from('empresas')
       .select('id, cnpj')
@@ -112,11 +116,17 @@ export async function processExcelFile(file: File): Promise<ProcessResult> {
       .from('indicadores')
       .select('id, codigo')
       .eq('ativo', true);
+      
+    const { data: clientes } = await supabase
+      .from('clientes')
+      .select('id, codigo')
+      .eq('ativo', true);
 
     // Mapear IDs para lookup rápido
     const empresaMap = new Map(empresas?.map(e => [e.cnpj, e.id]));
     const categoriaMap = new Map(categorias?.map(c => [c.codigo, c.id]));
     const indicadorMap = new Map(indicadores?.map(i => [i.codigo, i.id]));
+    const clienteMap = new Map(clientes?.map(c => [c.codigo, c.id]));
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -159,14 +169,21 @@ export async function processExcelFile(file: File): Promise<ProcessResult> {
         continue;
       }
 
-      // Validar categoria e indicador
-      if (row.categoria_codigo && row.indicador_codigo) {
-        errors.push(`Linha ${rowNumber}: Não é permitido informar categoria e indicador simultaneamente`);
+      // Validar categoria, indicador e cliente
+      const hasCategoria = !!row.categoria_codigo;
+      const hasIndicador = !!row.indicador_codigo;
+      const hasCliente = !!row.cliente_codigo;
+      
+      if ((hasCategoria && hasIndicador) || 
+          (hasCategoria && hasCliente) || 
+          (hasIndicador && hasCliente)) {
+        errors.push(`Linha ${rowNumber}: Não é permitido informar mais de um entre categoria, indicador e cliente`);
         continue;
       }
 
       let categoriaId = null;
       let indicadorId = null;
+      let clienteId = null;
 
       if (row.categoria_codigo) {
         categoriaId = categoriaMap.get(row.categoria_codigo);
@@ -183,6 +200,14 @@ export async function processExcelFile(file: File): Promise<ProcessResult> {
           continue;
         }
       }
+      
+      if (row.cliente_codigo) {
+        clienteId = clienteMap.get(row.cliente_codigo);
+        if (!clienteId) {
+          errors.push(`Linha ${rowNumber}: Código de cliente não encontrado`);
+          continue;
+        }
+      }
 
       // Se passou por todas as validações, adicionar à lista de lançamentos
       lancamentos.push({
@@ -192,6 +217,7 @@ export async function processExcelFile(file: File): Promise<ProcessResult> {
         ano: row.ano,
         categoria_id: categoriaId,
         indicador_id: indicadorId,
+        cliente_id: clienteId,
         empresa_id: empresaId,
         descricao: row.descricao || null
       });

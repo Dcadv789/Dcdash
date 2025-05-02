@@ -29,14 +29,16 @@ const ClientModal: React.FC<ClientModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedEmpresa) {
+      setError('Selecione uma empresa antes de continuar');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      if (!selectedEmpresa) {
-        throw new Error('Selecione uma empresa');
-      }
-
       const data = {
         razao_social: formData.razao_social,
         nome_fantasia: formData.nome_fantasia || null,
@@ -79,6 +81,12 @@ const ClientModal: React.FC<ClientModalProps> = ({
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-300">
             {error}
+          </div>
+        )}
+
+        {!selectedEmpresa && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-yellow-300">
+            Selecione uma empresa para continuar
           </div>
         )}
 
@@ -130,6 +138,7 @@ const ClientModal: React.FC<ClientModalProps> = ({
           <Button
             type="submit"
             loading={loading}
+            disabled={!selectedEmpresa || loading}
           >
             {loading ? 'Salvando...' : 'Salvar'}
           </Button>
