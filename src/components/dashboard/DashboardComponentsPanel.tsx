@@ -21,7 +21,7 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
     if (config) {
       fetchComponentes();
     }
-  }, [config]);
+  }, [config, table]);
 
   const getComponentsTable = () => {
     const prefix = table.split('_')[0];
