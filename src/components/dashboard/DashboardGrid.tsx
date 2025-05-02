@@ -102,7 +102,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
       const [
         { data: lancamentos },
         { data: indicadores },
-        { data: indicadorComponentes }
+        { data: indicadorComponentes },
+        { data: clientes }
       ] = await Promise.all([
         supabase
           .from('lancamentos')
@@ -114,6 +115,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
           .select('*'),
         supabase
           .from('indicador_composicoes')
+          .select('*'),
+        supabase
+          .from('clientes')
           .select('*')
       ]);
 
@@ -129,6 +133,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
         list.push(ic);
         componentesMap.set(ic.indicador_id, list);
       });
+      
+      const clientesMap = new Map(clientes?.map(c => [c.id, c]) || []);
 
       // Processar cada configuração
       await Promise.all(data.map(async (config) => {
@@ -220,92 +226,93 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
             newChartData[config.id] = chartValues;
           }
         } else if (config.tipo_visualizacao === 'list') {
-          // Buscar componentes da lista
-          const { data: listComponents } = await supabase
-            .from('dashboard_list_components')
-            .select(`
-              *,
-              categoria:categorias (*),
-              indicador:indicadores (*),
-              cliente:clientes (*)
-            `)
-            .eq('dashboard_id', config.id);
-
-          if (listComponents && listComponents.length > 0) {
-            let listValues = [];
+          let listValues = [];
+          
+          // Verificar o tipo de lista configurado
+          if (config.lista_tipo === 'categoria' || !config.lista_tipo) {
+            // Buscar as 10 maiores categorias de despesa
+            const { data: topCategorias } = await supabase
+              .from('lancamentos')
+              .select(`
+                categoria_id,
+                categoria:categorias (id, nome),
+                valor,
+                tipo
+              `)
+              .eq('mes', selectedMonth)
+              .eq('ano', selectedYear)
+              .eq('empresa_id', config.empresa_id)
+              .eq('tipo', 'despesa')
+              .not('categoria_id', 'is', null);
             
-            if (listComponents[0].categoria) {
-              listValues = lancamentos
-                ?.filter(l => 
-                  listComponents.some(comp => comp.categoria_id === l.categoria_id) &&
-                  l.mes === selectedMonth && 
-                  l.ano === selectedYear
-                )
-                .reduce((acc, l) => {
-                  const categoria = listComponents.find(comp => comp.categoria_id === l.categoria_id)?.categoria;
-                  const existingItem = acc.find(item => item.id === l.categoria_id);
-                  
-                  if (existingItem) {
-                    existingItem.valor += l.tipo === 'receita' ? l.valor : -l.valor;
-                  } else if (categoria) {
-                    acc.push({
-                      id: l.categoria_id,
-                      nome: categoria.nome,
-                      valor: l.tipo === 'receita' ? l.valor : -l.valor
-                    });
-                  }
-                  return acc;
-                }, []);
-            } else if (listComponents[0].indicador) {
-              for (const comp of listComponents) {
-                if (comp.indicador) {
-                  const valor = await calcularValorIndicador(
-                    comp.indicador.id,
-                    selectedMonth,
-                    selectedYear,
-                    config.empresa_id,
-                    cacheIndicadores,
-                    lancamentos,
-                    indicadoresMap,
-                    componentesMap
-                  );
-                  listValues.push({
-                    id: comp.indicador.id,
-                    nome: comp.indicador.nome,
-                    valor
-                  });
+            if (topCategorias && topCategorias.length > 0) {
+              // Agrupar por categoria e somar valores
+              const categoriasAgrupadas = topCategorias.reduce((acc, lancamento) => {
+                if (!lancamento.categoria) return acc;
+                
+                const categoriaId = lancamento.categoria.id;
+                if (!acc[categoriaId]) {
+                  acc[categoriaId] = {
+                    id: categoriaId,
+                    nome: lancamento.categoria.nome,
+                    valor: 0
+                  };
                 }
-              }
-            } else if (listComponents[0].cliente) {
-              listValues = lancamentos
-                ?.filter(l => 
-                  listComponents.some(comp => comp.cliente_id === l.cliente_id) &&
-                  l.mes === selectedMonth && 
-                  l.ano === selectedYear
-                )
-                .reduce((acc, l) => {
-                  const cliente = listComponents.find(comp => comp.cliente_id === l.cliente_id)?.cliente;
-                  const existingItem = acc.find(item => item.id === l.cliente_id);
-                  
-                  if (existingItem) {
-                    existingItem.valor += l.tipo === 'receita' ? l.valor : -l.valor;
-                  } else if (cliente) {
-                    acc.push({
-                      id: l.cliente_id,
-                      nome: cliente.razao_social,
-                      valor: l.tipo === 'receita' ? l.valor : -l.valor
-                    });
-                  }
-                  return acc;
-                }, []);
+                
+                acc[categoriaId].valor += lancamento.valor;
+                return acc;
+              }, {} as Record<string, { id: string, nome: string, valor: number }>);
+              
+              // Converter para array, ordenar e pegar os 10 maiores
+              listValues = Object.values(categoriasAgrupadas)
+                .sort((a, b) => b.valor - a.valor)
+                .slice(0, 10);
             }
+          } else if (config.lista_tipo === 'cliente') {
+            // Buscar os 10 maiores clientes
+            const { data: topClientes } = await supabase
+              .from('lancamentos')
+              .select(`
+                cliente_id,
+                valor,
+                tipo
+              `)
+              .eq('mes', selectedMonth)
+              .eq('ano', selectedYear)
+              .eq('empresa_id', config.empresa_id)
+              .eq('tipo', 'receita')
+              .not('cliente_id', 'is', null);
             
-            // Ordenar por valor e limitar a 5 itens
-            listValues.sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor));
-            listValues = listValues.slice(0, 5);
-            
-            newListData[config.id] = listValues;
+            if (topClientes && topClientes.length > 0) {
+              // Agrupar por cliente e somar valores
+              const clientesAgrupados = topClientes.reduce((acc, lancamento) => {
+                if (!lancamento.cliente_id) return acc;
+                
+                const clienteId = lancamento.cliente_id;
+                const cliente = clientesMap.get(clienteId);
+                
+                if (!cliente) return acc;
+                
+                if (!acc[clienteId]) {
+                  acc[clienteId] = {
+                    id: clienteId,
+                    nome: cliente.razao_social,
+                    valor: 0
+                  };
+                }
+                
+                acc[clienteId].valor += lancamento.valor;
+                return acc;
+              }, {} as Record<string, { id: string, nome: string, valor: number }>);
+              
+              // Converter para array, ordenar e pegar os 10 maiores
+              listValues = Object.values(clientesAgrupados)
+                .sort((a, b) => b.valor - a.valor)
+                .slice(0, 10);
+            }
           }
+          
+          newListData[config.id] = listValues;
         }
       }));
 
@@ -370,12 +377,13 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
         {topCards.map(card => {
           if (card.tipo_visualizacao === 'list') {
             return (
-              <DashboardList
-                key={card.id}
-                title={card.titulo}
-                items={listData[card.id] || []}
-                type={getDataType(card)}
-              />
+              <div key={card.id} className="col-span-1">
+                <DashboardList
+                  title={card.titulo}
+                  items={listData[card.id] || []}
+                  type={getDataType(card)}
+                />
+              </div>
             );
           }
           return (

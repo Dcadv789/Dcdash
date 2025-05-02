@@ -25,6 +25,7 @@ const DashboardConfigModal: React.FC<DashboardConfigModalProps> = ({
     titulo: config?.titulo || '',
     tipo_visualizacao: config?.tipo_visualizacao || 'card',
     tipo_grafico: config?.tipo_grafico || 'line',
+    lista_tipo: config?.lista_tipo || 'categoria',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,6 +39,7 @@ const DashboardConfigModal: React.FC<DashboardConfigModalProps> = ({
         titulo: formData.titulo,
         tipo_visualizacao: formData.tipo_visualizacao,
         tipo_grafico: formData.tipo_visualizacao === 'chart' ? formData.tipo_grafico : null,
+        lista_tipo: formData.tipo_visualizacao === 'list' ? formData.lista_tipo : null,
         empresa_id: empresaId,
       };
 
@@ -140,6 +142,23 @@ const DashboardConfigModal: React.FC<DashboardConfigModalProps> = ({
               <option value="bar">Barras</option>
               <option value="area">Área</option>
               <option value="pie">Pizza</option>
+            </select>
+          </div>
+        )}
+
+        {formData.tipo_visualizacao === 'list' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">
+              Tipo de Lista
+            </label>
+            <select
+              value={formData.lista_tipo}
+              onChange={(e) => setFormData(prev => ({ ...prev, lista_tipo: e.target.value as 'categoria' | 'cliente' }))}
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="categoria">Categorias</option>
+              <option value="cliente">Clientes</option>
             </select>
           </div>
         )}
