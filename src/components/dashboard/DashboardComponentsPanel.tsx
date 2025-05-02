@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Calculator, X } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { supabase } from '../../lib/supabase';
 
 interface DashboardComponentsPanelProps {
   config?: any;
   onManageComponents: () => void;
+  table?: 'dashboard_config' | 'vendas_config' | 'analise_config';
 }
 
 const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
   config,
   onManageComponents,
+  table = 'dashboard_config'
 }) => {
   const [componentes, setComponentes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -21,117 +23,69 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
     }
   }, [config]);
 
+  const getComponentsTable = () => {
+    const prefix = table.split('_')[0];
+    if (config?.tipo_visualizacao === 'chart') {
+      return `${prefix}_chart_components`;
+    } else if (config?.tipo_visualizacao === 'list') {
+      return `${prefix}_list_components`;
+    } else {
+      return `${prefix}_card_components`;
+    }
+  };
+
   const fetchComponentes = async () => {
     if (!config) return;
     
     setLoading(true);
     try {
-      let query;
+      const componentsTable = getComponentsTable();
       
-      // Selecionar a tabela correta baseado no tipo de visualização
-      switch (config.tipo_visualizacao) {
-        case 'card':
-          query = supabase
-            .from('dashboard_card_components')
-            .select(`
-              *,
-              categoria:categorias (
-                id,
-                nome,
-                codigo
-              ),
-              indicador:indicadores (
-                id,
-                nome,
-                codigo
-              )
-            `)
-            .eq('dashboard_id', config.id);
-          break;
-          
-        case 'chart':
-          query = supabase
-            .from('dashboard_chart_components')
-            .select(`
-              *,
-              categoria:categorias (
-                id,
-                nome,
-                codigo
-              ),
-              indicador:indicadores (
-                id,
-                nome,
-                codigo
-              )
-            `)
-            .eq('dashboard_id', config.id);
-          break;
-          
-        case 'list':
-          query = supabase
-            .from('dashboard_list_components')
-            .select(`
-              *,
-              categoria:categorias (
-                id,
-                nome,
-                codigo
-              ),
-              indicador:indicadores (
-                id,
-                nome,
-                codigo
-              ),
-              cliente:clientes (
-                id,
-                razao_social
-              )
-            `)
-            .eq('dashboard_id', config.id);
-          break;
+      let query = supabase
+        .from(componentsTable)
+        .select(`
+          *,
+          categoria:categorias (
+            id,
+            nome,
+            codigo
+          ),
+          indicador:indicadores (
+            id,
+            nome,
+            codigo
+          )
+        `)
+        .eq('dashboard_id', config.id);
+
+      if (config.tipo_visualizacao === 'list') {
+        query = query.select(`
+          *,
+          categoria:categorias (
+            id,
+            nome,
+            codigo
+          ),
+          indicador:indicadores (
+            id,
+            nome,
+            codigo
+          ),
+          cliente:clientes (
+            id,
+            razao_social
+          )
+        `);
       }
 
-      if (query) {
-        const { data, error } = await query;
-        if (error) throw error;
-        setComponentes(data || []);
-      }
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      setComponentes(data || []);
     } catch (err) {
       console.error('Erro ao carregar componentes:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleRemoveComponent = async (componentId: string) => {
-    if (!config) return;
-
-    try {
-      let table = '';
-      switch (config.tipo_visualizacao) {
-        case 'card':
-          table = 'dashboard_card_components';
-          break;
-        case 'chart':
-          table = 'dashboard_chart_components';
-          break;
-        case 'list':
-          table = 'dashboard_list_components';
-          break;
-      }
-
-      const { error } = await supabase
-        .from(table)
-        .delete()
-        .eq('id', componentId);
-
-      if (error) throw error;
-
-      // Atualizar a lista de componentes
-      setComponentes(prev => prev.filter(comp => comp.id !== componentId));
-    } catch (err) {
-      console.error('Erro ao remover componente:', err);
     }
   };
 
@@ -169,23 +123,14 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
 
     return (
       <div key={comp.id} className="bg-gray-700 rounded-lg p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            {(config.tipo_visualizacao === 'chart' || config.tipo_visualizacao === 'card') && (
-              <div
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: comp.cor }}
-              />
-            )}
-            <div>{content}</div>
-          </div>
-          <button
-            onClick={() => handleRemoveComponent(comp.id)}
-            className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded-lg transition-colors"
-            title="Remover"
-          >
-            <X size={16} />
-          </button>
+        <div className="flex items-center gap-3">
+          {(config.tipo_visualizacao === 'chart' || config.tipo_visualizacao === 'card') && (
+            <div
+              className="w-4 h-4 rounded-full"
+              style={{ backgroundColor: comp.cor }}
+            />
+          )}
+          <div>{content}</div>
         </div>
       </div>
     );
@@ -200,7 +145,7 @@ const DashboardComponentsPanel: React.FC<DashboardComponentsPanelProps> = ({
           icon={Calculator}
           onClick={onManageComponents}
         >
-          Adicionar
+          Gerenciar
         </Button>
       </div>
 
