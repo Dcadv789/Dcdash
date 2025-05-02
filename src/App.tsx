@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import UsersPage from './pages/UsersPage';
 import CompaniesPage from './pages/CompaniesPage';
+import ClientsPage from './pages/ClientsPage';
 import ProfilePage from './pages/ProfilePage';
 import CategoriesPage from './pages/CategoriesPage';
 import IndicatorsPage from './pages/IndicatorsPage';
@@ -35,6 +36,7 @@ function App() {
             <Route index element={<DashboardPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="companies" element={<CompaniesPage />} />
+            <Route path="clients" element={<ClientsPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="indicators" element={<IndicatorsPage />} />
