@@ -7,8 +7,8 @@ import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { ErrorAlert } from '../components/shared/ErrorAlert';
 import { EmptyState } from '../components/shared/EmptyState';
 import { Button } from '../components/shared/Button';
-import ClientCard from '../components/clients/ClientCard';
 import ClientModal from '../components/clients/ClientModal';
+import { formatCNPJ } from '../utils/formatters';
 
 const ClientsPage: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<Cliente | null>(null);
@@ -40,7 +40,7 @@ const ClientsPage: React.FC = () => {
         query = query.eq('empresa_id', selectedEmpresa);
       }
 
-      return query.order('razao_social');
+      return query.order('codigo');
     },
     dependencies: [selectedEmpresa],
   });
@@ -114,22 +114,51 @@ const ClientsPage: React.FC = () => {
       {clients.length === 0 ? (
         <EmptyState message="Nenhum cliente encontrado." />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {clients.map((client) => (
-            <ClientCard
-              key={client.id}
-              client={client}
-              onView={() => {
-                setSelectedClient(client);
-                setIsViewModalOpen(true);
-              }}
-              onEdit={() => {
-                setSelectedClient(client);
-                setIsModalOpen(true);
-              }}
-              onDelete={handleDelete}
-            />
-          ))}
+        <div className="bg-gray-800 rounded-xl overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-700">
+                <th className="text-left p-4 text-gray-400 w-16">#</th>
+                <th className="text-left p-4 text-gray-400 w-32">Código</th>
+                <th className="text-left p-4 text-gray-400">Razão Social</th>
+                <th className="text-left p-4 text-gray-400">Nome Fantasia</th>
+                <th className="text-left p-4 text-gray-400">CNPJ</th>
+                <th className="text-right p-4 text-gray-400">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clients.map((client, index) => (
+                <tr key={client.id} className="border-b border-gray-700 hover:bg-gray-700/50">
+                  <td className="p-4 text-gray-400">{index + 1}</td>
+                  <td className="p-4 text-white font-mono">{client.codigo}</td>
+                  <td className="p-4 text-white">{client.razao_social}</td>
+                  <td className="p-4 text-white">{client.nome_fantasia || '-'}</td>
+                  <td className="p-4 text-white font-mono">{formatCNPJ(client.cnpj)}</td>
+                  <td className="p-4">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedClient(client);
+                          setIsModalOpen(true);
+                        }}
+                        className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+                        title="Editar"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(client)}
+                        className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded-lg"
+                        title="Excluir"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
