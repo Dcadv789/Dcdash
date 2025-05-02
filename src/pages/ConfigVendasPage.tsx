@@ -7,12 +7,20 @@ import { ErrorAlert } from '../components/shared/ErrorAlert';
 import { EmptyState } from '../components/shared/EmptyState';
 import { Button } from '../components/shared/Button';
 import DashboardConfigList from '../components/dashboard/DashboardConfigList';
+import DashboardConfigFilters from '../components/dashboard/DashboardConfigFilters';
 import DashboardConfigModal from '../components/dashboard/DashboardConfigModal';
+import DashboardConfigViewModal from '../components/dashboard/DashboardConfigViewModal';
+import DashboardComponentsPanel from '../components/dashboard/DashboardComponentsPanel';
+import DashboardComponentsModal from '../components/dashboard/DashboardComponentsModal';
 
 const ConfigVendasPage: React.FC = () => {
   const [selectedEmpresa, setSelectedEmpresa] = useState<string>('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<'todos' | 'card' | 'chart' | 'list'>('todos');
+  const [showInactive, setShowInactive] = useState(false);
   const [selectedConfig, setSelectedConfig] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isComponentsModalOpen, setIsComponentsModalOpen] = useState(false);
 
   const { data: empresas } = useSupabaseQuery({
     query: () => supabase
@@ -24,6 +32,8 @@ const ConfigVendasPage: React.FC = () => {
 
   const { data: configs, loading, error, refetch } = useSupabaseQuery({
     query: () => {
+      if (!selectedEmpresa) return Promise.resolve({ data: [] });
+
       let query = supabase
         .from('vendas_config')
         .select(`
@@ -38,36 +48,49 @@ const ConfigVendasPage: React.FC = () => {
             nome,
             codigo
           ),
-          empresa:empresas (
-            id,
-            razao_social
-          ),
           chart_components:vendas_chart_components (
             id,
             ordem,
             cor,
             categoria:categorias (
               id,
-              nome,
-              codigo
+              nome
             ),
             indicador:indicadores (
               id,
-              nome,
-              codigo
+              nome
             )
           )
         `)
-        .order('posicao');
+        .eq('empresa_id', selectedEmpresa);
 
-      if (selectedEmpresa) {
-        query = query.eq('empresa_id', selectedEmpresa);
+      if (!showInactive) {
+        query = query.eq('ativo', true);
       }
 
-      return query;
+      if (selectedType !== 'todos') {
+        query = query.eq('tipo_visualizacao', selectedType);
+      }
+
+      return query.order('posicao');
     },
-    dependencies: [selectedEmpresa],
+    dependencies: [selectedEmpresa, selectedType, showInactive],
   });
+
+  const handleToggleActive = async (config: any) => {
+    try {
+      const { error } = await supabase
+        .from('vendas_config')
+        .update({ ativo: !config.ativo })
+        .eq('id', config.id);
+
+      if (error) throw error;
+      refetch();
+    } catch (err) {
+      console.error('Erro ao atualizar status:', err);
+      alert('Não foi possível atualizar o status da configuração');
+    }
+  };
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorAlert message={error} />;
@@ -77,7 +100,7 @@ const ConfigVendasPage: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-semibold text-white">Configuração do Dashboard de Vendas</h2>
-          <p className="text-gray-400 mt-1">Configure os indicadores e gráficos do dashboard de vendas</p>
+          <p className="text-gray-400 mt-1">Configure os indicadores e categorias que serão exibidos no dashboard de vendas</p>
         </div>
         <Button
           onClick={() => {
@@ -90,41 +113,48 @@ const ConfigVendasPage: React.FC = () => {
         </Button>
       </div>
 
-      <div className="bg-gray-800 rounded-xl p-4">
-        <div className="relative w-64">
-          <select
-            value={selectedEmpresa}
-            onChange={(e) => setSelectedEmpresa(e.target.value)}
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-          >
-            <option value="">Selecione uma empresa</option>
-            {empresas?.map(empresa => (
-              <option key={empresa.id} value={empresa.id}>
-                {empresa.razao_social}
-              </option>
-            ))}
-          </select>
-          <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-      </div>
+      <DashboardConfigFilters
+        selectedEmpresa={selectedEmpresa}
+        selectedType={selectedType}
+        showInactive={showInactive}
+        empresas={empresas}
+        onEmpresaChange={setSelectedEmpresa}
+        onTypeChange={setSelectedType}
+        onToggleInactive={() => setShowInactive(!showInactive)}
+      />
 
       {!selectedEmpresa ? (
         <EmptyState message="Selecione uma empresa para configurar o dashboard" />
-      ) : configs.length === 0 ? (
-        <EmptyState message="Nenhuma configuração encontrada" />
       ) : (
-        <DashboardConfigList
-          configs={configs}
-          onRefetch={refetch}
-          onEdit={(config) => {
-            setSelectedConfig(config);
-            setIsModalOpen(true);
-          }}
-        />
+        <div className="flex gap-6">
+          <div className="flex-[6]">
+            {configs.length === 0 ? (
+              <EmptyState message="Nenhuma configuração encontrada" />
+            ) : (
+              <DashboardConfigList
+                configs={configs}
+                selectedConfig={selectedConfig}
+                onSelect={setSelectedConfig}
+                onView={(config) => {
+                  setSelectedConfig(config);
+                  setIsViewModalOpen(true);
+                }}
+                onEdit={(config) => {
+                  setSelectedConfig(config);
+                  setIsModalOpen(true);
+                }}
+                onToggleActive={handleToggleActive}
+              />
+            )}
+          </div>
+
+          <div className="flex-[4]">
+            <DashboardComponentsPanel
+              config={selectedConfig}
+              onManageComponents={() => setIsComponentsModalOpen(true)}
+            />
+          </div>
+        </div>
       )}
 
       {isModalOpen && (
@@ -136,6 +166,28 @@ const ConfigVendasPage: React.FC = () => {
             setIsModalOpen(false);
           }}
           onSave={refetch}
+        />
+      )}
+
+      {isViewModalOpen && selectedConfig && (
+        <DashboardConfigViewModal
+          config={selectedConfig}
+          onClose={() => {
+            setSelectedConfig(null);
+            setIsViewModalOpen(false);
+          }}
+        />
+      )}
+
+      {isComponentsModalOpen && selectedConfig && (
+        <DashboardComponentsModal
+          config={selectedConfig}
+          onClose={() => {
+            setIsComponentsModalOpen(false);
+          }}
+          onSave={() => {
+            refetch();
+          }}
         />
       )}
     </div>
