@@ -170,6 +170,7 @@ const ConfigVendasPage: React.FC = () => {
             setIsModalOpen(false);
           }}
           onSave={refetch}
+          table="vendas_config"
         />
       )}
 
@@ -192,6 +193,7 @@ const ConfigVendasPage: React.FC = () => {
           onSave={() => {
             refetch();
           }}
+          table="vendas_config"
         />
       )}
     </div>

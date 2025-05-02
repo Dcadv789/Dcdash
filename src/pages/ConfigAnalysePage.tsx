@@ -170,6 +170,7 @@ const ConfigAnalysePage: React.FC = () => {
             setIsModalOpen(false);
           }}
           onSave={refetch}
+          table="analise_config"
         />
       )}
 
@@ -192,10 +193,11 @@ const ConfigAnalysePage: React.FC = () => {
           onSave={() => {
             refetch();
           }}
+          table="analise_config"
         />
       )}
     </div>
   );
-};
+}
 
 export default ConfigAnalysePage;

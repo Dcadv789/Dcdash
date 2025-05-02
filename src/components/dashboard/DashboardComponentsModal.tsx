@@ -8,12 +8,14 @@ interface DashboardComponentsModalProps {
   config: any;
   onClose: () => void;
   onSave: () => void;
+  table?: 'dashboard_config' | 'vendas_config' | 'analise_config';
 }
 
 const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
   config,
   onClose,
   onSave,
+  table = 'dashboard_config'
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,8 +29,21 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
     fetchData();
   }, []);
 
+  const getComponentsTable = () => {
+    const prefix = table.split('_')[0];
+    if (config.tipo_visualizacao === 'chart') {
+      return `${prefix}_chart_components`;
+    } else if (config.tipo_visualizacao === 'list') {
+      return `${prefix}_list_components`;
+    } else {
+      return `${prefix}_card_components`;
+    }
+  };
+
   const fetchData = async () => {
     try {
+      const componentsTable = getComponentsTable();
+
       // Buscar dados básicos
       const [{ data: categoriasData }, { data: indicadoresData }, { data: clientesData }] = await Promise.all([
         supabase
@@ -52,16 +67,7 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
       if (indicadoresData) setIndicadores(indicadoresData);
       if (clientesData) setClientes(clientesData);
 
-      // Buscar componentes existentes baseado no tipo de visualização
-      let componentsTable = '';
-      if (config.tipo_visualizacao === 'chart') {
-        componentsTable = 'dashboard_chart_components';
-      } else if (config.tipo_visualizacao === 'list') {
-        componentsTable = 'dashboard_list_components';
-      } else {
-        componentsTable = 'dashboard_card_components';
-      }
-
+      // Buscar componentes existentes
       const { data: componentsData } = await supabase
         .from(componentsTable)
         .select(`
@@ -95,49 +101,39 @@ const DashboardComponentsModal: React.FC<DashboardComponentsModalProps> = ({
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Determinar tabela baseado no tipo de visualização
-      let table = '';
-      let componentsData;
+      const componentsTable = getComponentsTable();
 
-      if (config.tipo_visualizacao === 'chart') {
-        table = 'dashboard_chart_components';
-        componentsData = selectedComponents.map((comp, index) => ({
-          dashboard_id: config.id,
-          categoria_id: comp.categoria?.id || null,
-          indicador_id: comp.indicador?.id || null,
-          ordem: index + 1,
-          cor: comp.cor || '#3B82F6'
-        }));
-      } else if (config.tipo_visualizacao === 'list') {
-        table = 'dashboard_list_components';
-        componentsData = selectedComponents.map((comp, index) => ({
-          dashboard_id: config.id,
-          categoria_id: comp.categoria?.id || null,
-          indicador_id: comp.indicador?.id || null,
-          cliente_id: comp.cliente?.id || null,
-          ordem: index + 1
-        }));
-      } else {
-        table = 'dashboard_card_components';
-        componentsData = selectedComponents.map((comp, index) => ({
-          dashboard_id: config.id,
-          categoria_id: comp.categoria?.id || null,
-          indicador_id: comp.indicador?.id || null,
-          ordem: index + 1,
-          cor: comp.cor || '#3B82F6'
-        }));
-      }
-
-      // Deletar componentes existentes
+      // Remover componentes existentes
       await supabase
-        .from(table)
+        .from(componentsTable)
         .delete()
         .eq('dashboard_id', config.id);
 
       // Inserir novos componentes
-      if (componentsData && componentsData.length > 0) {
+      if (selectedComponents.length > 0) {
+        const componentsData = selectedComponents.map((comp, index) => {
+          const baseData = {
+            dashboard_id: config.id,
+            categoria_id: comp.categoria?.id || null,
+            indicador_id: comp.indicador?.id || null,
+            ordem: index + 1,
+          };
+
+          if (config.tipo_visualizacao === 'list') {
+            return {
+              ...baseData,
+              cliente_id: comp.cliente?.id || null,
+            };
+          } else {
+            return {
+              ...baseData,
+              cor: comp.cor || '#3B82F6',
+            };
+          }
+        });
+
         const { error } = await supabase
-          .from(table)
+          .from(componentsTable)
           .insert(componentsData);
 
         if (error) throw error;

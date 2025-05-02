@@ -8,6 +8,7 @@ interface DashboardConfigModalProps {
   config?: any;
   onClose: () => void;
   onSave: () => void;
+  table?: 'dashboard_config' | 'vendas_config' | 'analise_config';
 }
 
 const DashboardConfigModal: React.FC<DashboardConfigModalProps> = ({
@@ -15,6 +16,7 @@ const DashboardConfigModal: React.FC<DashboardConfigModalProps> = ({
   config,
   onClose,
   onSave,
+  table = 'dashboard_config'
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,14 +43,14 @@ const DashboardConfigModal: React.FC<DashboardConfigModalProps> = ({
 
       if (config) {
         const { error } = await supabase
-          .from('dashboard_config')
+          .from(table)
           .update(saveData)
           .eq('id', config.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('dashboard_config')
+          .from(table)
           .insert([saveData]);
 
         if (error) throw error;
