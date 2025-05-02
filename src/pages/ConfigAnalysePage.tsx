@@ -10,7 +10,7 @@ import DashboardConfigList from '../components/dashboard/DashboardConfigList';
 import DashboardConfigFilters from '../components/dashboard/DashboardConfigFilters';
 import DashboardConfigModal from '../components/dashboard/DashboardConfigModal';
 import DashboardConfigViewModal from '../components/dashboard/DashboardConfigViewModal';
-import DashboardComponentsPanel from '../components/dashboard/DashboardComponentsPanel';
+import AnalysisComponentsPanel from '../components/analysis/AnalysisComponentsPanel';
 import DashboardComponentsModal from '../components/dashboard/DashboardComponentsModal';
 
 const ConfigAnalysePage: React.FC = () => {
@@ -47,19 +47,6 @@ const ConfigAnalysePage: React.FC = () => {
             id,
             nome,
             codigo
-          ),
-          chart_components:analise_chart_components (
-            id,
-            ordem,
-            cor,
-            categoria:categorias (
-              id,
-              nome
-            ),
-            indicador:indicadores (
-              id,
-              nome
-            )
           )
         `)
         .eq('empresa_id', selectedEmpresa);
@@ -153,7 +140,7 @@ const ConfigAnalysePage: React.FC = () => {
           </div>
 
           <div className="flex-[4]">
-            <DashboardComponentsPanel
+            <AnalysisComponentsPanel
               config={selectedConfig}
               onManageComponents={() => setIsComponentsModalOpen(true)}
             />
@@ -198,6 +185,6 @@ const ConfigAnalysePage: React.FC = () => {
       )}
     </div>
   );
-}
+};
 
 export default ConfigAnalysePage;

@@ -10,7 +10,7 @@ import DashboardConfigList from '../components/dashboard/DashboardConfigList';
 import DashboardConfigFilters from '../components/dashboard/DashboardConfigFilters';
 import DashboardConfigModal from '../components/dashboard/DashboardConfigModal';
 import DashboardConfigViewModal from '../components/dashboard/DashboardConfigViewModal';
-import DashboardComponentsPanel from '../components/dashboard/DashboardComponentsPanel';
+import VendasComponentsPanel from '../components/vendas/VendasComponentsPanel';
 import DashboardComponentsModal from '../components/dashboard/DashboardComponentsModal';
 
 const ConfigVendasPage: React.FC = () => {
@@ -47,19 +47,6 @@ const ConfigVendasPage: React.FC = () => {
             id,
             nome,
             codigo
-          ),
-          chart_components:vendas_chart_components (
-            id,
-            ordem,
-            cor,
-            categoria:categorias (
-              id,
-              nome
-            ),
-            indicador:indicadores (
-              id,
-              nome
-            )
           )
         `)
         .eq('empresa_id', selectedEmpresa);
@@ -153,7 +140,7 @@ const ConfigVendasPage: React.FC = () => {
           </div>
 
           <div className="flex-[4]">
-            <DashboardComponentsPanel
+            <VendasComponentsPanel
               config={selectedConfig}
               onManageComponents={() => setIsComponentsModalOpen(true)}
             />
