@@ -1,5 +1,6 @@
 import React from 'react';
 import { Activity, CheckCircle2, XCircle } from 'lucide-react';
+import { KeepAliveStatus } from './KeepAliveStatus';
 
 interface SystemStatusProps {
   status: {
@@ -39,6 +40,10 @@ export const SystemStatus: React.FC<SystemStatusProps> = ({ status }) => {
             isOnline={allSystemsUp}
             className="font-medium"
           />
+        </div>
+
+        <div className="pt-2 mt-2 border-t border-gray-800">
+          <KeepAliveStatus />
         </div>
       </div>
     </div>

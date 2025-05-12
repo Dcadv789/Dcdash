@@ -20,6 +20,7 @@ import VendasPage from './pages/VendasPage';
 import ConfigVendasPage from './pages/ConfigVendasPage';
 import AnalysePage from './pages/AnalysePage';
 import ConfigAnalysePage from './pages/ConfigAnalysePage';
+import KeepAlivePage from './pages/KeepAlivePage';
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
             <Route path="configvendas" element={<ConfigVendasPage />} />
             <Route path="analysis" element={<AnalysePage />} />
             <Route path="configanalysis" element={<ConfigAnalysePage />} />
+            <Route path="keepalive" element={<KeepAlivePage />} />
           </Route>
           
           <Route path="*" element={<Navigate to="/" replace />} />

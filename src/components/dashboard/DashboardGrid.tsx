@@ -269,8 +269,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                 .slice(0, 10);
             }
           } else if (config.lista_tipo === 'cliente') {
-            // Buscar os 10 maiores clientes
-            const { data: topClientes } = await supabase
+            // Buscar os lançamentos por cliente
+            const { data: lancamentosClientes } = await supabase
               .from('lancamentos')
               .select(`
                 cliente_id,
@@ -283,9 +283,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
               .eq('tipo', 'receita')
               .not('cliente_id', 'is', null);
             
-            if (topClientes && topClientes.length > 0) {
+            if (lancamentosClientes && lancamentosClientes.length > 0) {
               // Agrupar por cliente e somar valores
-              const clientesAgrupados = topClientes.reduce((acc, lancamento) => {
+              const clientesAgrupados = lancamentosClientes.reduce((acc, lancamento) => {
                 if (!lancamento.cliente_id) return acc;
                 
                 const clienteId = lancamento.cliente_id;
